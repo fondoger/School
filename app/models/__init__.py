@@ -4,6 +4,7 @@ from .users import User, WaitingUser
 from .groups import Group, GroupMembership, Activity
 from .sales import Sale, SaleComment, SalePicture
 from .other import TempImage
+from .messages import Message, TextMessage
 
 
 from flask_login import AnonymousUserMixin

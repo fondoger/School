@@ -140,4 +140,5 @@ class Topic(db.Model):
             "statuses": self.statuses.count(),
             "followers": 0,
             "views": 0,
+            'themeColor': '#c6c5ac',
         }

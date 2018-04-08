@@ -1,11 +1,12 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from flask_socketio import SocketIO
 from app.algorithm.rank import Rank
 from config import config
 
-
 db = SQLAlchemy()
+socketio = SocketIO()
 login_manager = LoginManager()
 login_manager.session_protection = None
 login_manager.login_view = 'api.login'
@@ -18,6 +19,7 @@ def create_app(config_name):
 
     db.init_app(app)
     login_manager.init_app(app)
+    socketio.init_app(app)
 
     # for calculate rank every day
     rank.init_app(app)
@@ -28,4 +30,4 @@ def create_app(config_name):
     from .main import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
-    return app
+    return app, socketio

@@ -16,5 +16,11 @@ class Config:
         pass
 
 
+class Local(Config):
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data-test.sqlite')
 
-config = {"default": Config}
+
+config = {
+    "default": Config,
+    "local": Local,
+}

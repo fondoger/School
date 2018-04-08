@@ -6,6 +6,7 @@ from random import randint
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from .. import db
 from sqlalchemy.ext.associationproxy import association_proxy
+from time import time
 
 user_follows = db.Table('user_follows',
     db.Column('follower_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
@@ -13,8 +14,7 @@ user_follows = db.Table('user_follows',
 )
 
 def defaultUsername(context):
-    id = User.query[-1].id + 1
-    return '用户_' + str(id)
+    return '用户_' + str(int(time()*10000000%10000000000000000))
 
 
 class User(UserMixin, db.Model):
@@ -37,21 +37,24 @@ class User(UserMixin, db.Model):
     """ Relationships """
     # 动态
     statuses = db.relationship('Status', backref='user', lazy='dynamic')
-    status_replies = db.relationship('StatusReply', backref='user', lazy='dynamic')
+    status_replies = db.relationship('StatusReply', backref='user', 
+        lazy='dynamic')
     # 团体
     followed = db.relationship(
         'User', secondary=user_follows,
         primaryjoin=(user_follows.c.follower_id == id),
         secondaryjoin=(user_follows.c.followed_id == id),
         backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
-    group_memberships = db.relationship("GroupMembership", back_populates="user",
-                                         cascade='all, delete-orphan')
+    group_memberships = db.relationship("GroupMembership", 
+        back_populates="user", cascade='all, delete-orphan')
     # 添加直接访问方式, 可以直接通过u.groups访问到用户所在的团体
     groups = association_proxy("group_memberships", "group")
     # 二手
     sales = db.relationship('Sale', backref='user', lazy='dynamic')
     sale_comments = db.relationship('SaleComment', backref='user', 
         lazy='dynamic')
+    # private messages
+    messages = db.relationship('Message', backref='user', lazy='dynamic')
     
     def generate_auth_token(self, expiration):
         s = Serializer('auth' + current_app.config['SECRET_KEY'],

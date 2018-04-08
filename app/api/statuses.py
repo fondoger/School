@@ -49,7 +49,7 @@ def create_status():
     if type==Status.USERSTATUS:
         s = Status(type=Status.USERSTATUS, user=g.user, text=text)
         # 检查话题
-        topics = TOPICREGEX.findall(text)
+        topics = list(set(TOPICREGEX.findall(text)))
         for topic in topics:
             print(topic)
             t = Topic.query.filter_by(topic=topic).first()
@@ -302,7 +302,7 @@ def get_status_reply():
     id = request.args.get('id', -1, type=int)
     status_id = request.args.get('status_id', -1, type=int)
     offset = request.args.get('offset', 0, type=int)
-    reverse = request.args.get('reverse', '')
+    reverse = request.args.get('reverse', False)
     limit = request.args.get('limit', 10, type=int)
     if id != -1:
         reply = StatusReply.query.get_or_404(id)
@@ -377,6 +377,6 @@ def get_topic():
         t = Topic.query.get_or_404(id)
         return jsonify(t.to_json())
     if topic != '':
-        t = Topic.query.filter_by(topic=topic).first_or_4004()
+        t = Topic.query.filter_by(topic=topic).first_or_404()
         return jsonify(t.to_json())
     return bad_request("参数有误")
