@@ -41,6 +41,18 @@ gunicorn -w 3 manage:app -b 0.0.0.0:80
 
 由于暂时基本没有静态文件的访问需求，故没有使用Nginx服务器。
 
+API设计及文档
+-------
+
+API采用restful API风格设计。
+
+三种类型的请求：
+GET 获取数据
+POST 创建数据
+PUT/PATCH 修改数据
+
+完整的API参见，[API文档-更新中](https://documenter.getpostman.com/view/2780787/RWMBQAJU#1cbc7b44-0da7-74c2-635e-0efd45567f90)。
+
 
 使用到的云服务
 -------
