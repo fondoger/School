@@ -23,5 +23,5 @@ class Development(Config):
 
 config = {
     "default": Config,
-    "development": Devlopment,
+    "development": Development,
 }
