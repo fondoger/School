@@ -6,7 +6,7 @@ from app import models
 import sys
 
 
-app = create_app('local')
+app = create_app('default')
 manager = Manager(app)
 migrate = Migrate(app, db)
 
@@ -21,7 +21,4 @@ manager.add_command('db', MigrateCommand)
 
 
 if __name__ == '__main__':
-    #if len(sys.argv) > 1 and sys.argv[1] == 'run':
-        #socketio.run(app, host="0.0.0.0", port=80)
-    #else:
     manager.run()

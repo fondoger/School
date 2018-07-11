@@ -1,0 +1,13 @@
+requests==2.19.1
+apscheduler==3.5.1
+Flask==1.0.2
+flask_httpauth==3.2.4
+flask_login==0.4.1
+flask_migrate==2.2.1
+flask_script==2.0.6
+flask_socketio==3.0.1
+flask_sqlalchemy==2.3.2
+itsdangerous==0.24
+requests_futures==0.9.7
+SQLAlchemy==1.2.9
+Werkzeug==0.14.1
