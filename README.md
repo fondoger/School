@@ -14,10 +14,15 @@ pip install -r requirements.txt
 
 **数据库初始化**
 
+```
+python manage.py db init
+```
 
 **本地运行**
 
-
+```
+python manage.py runserver -h0.0.0.0 -p80
+```
 
 **服务器部署**
 
