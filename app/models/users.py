@@ -24,7 +24,7 @@ class User(UserMixin, db.Model):
     # Todo: 不能为空, 两端的字符不能为空格
     username = db.Column(db.String(32), nullable=False, unique=True,
                          index=True, default=defaultUsername)
-    password_hash = db.Column(db.String(128))
+    password_hash = db.Column(db.String(255))
     avatar = db.Column(db.String(128), nullable=False,
         default='default_avatar.jpg')
     self_intro = db.Column(db.String(40))

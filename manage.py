@@ -6,7 +6,7 @@ from app import models
 import sys
 
 
-app = create_app('default')
+app = create_app('development')
 manager = Manager(app)
 migrate = Migrate(app, db)
 

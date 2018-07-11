@@ -23,17 +23,19 @@ pip install -r requirements.txt
 
 
 第一步：
-修改配置文件，将`manage.py`中的：
+修改配置文件，在项目根目录下的`manage.py`文件中，做出如下修改：
 ```
-将manage.py中的：
 app = create_app('default')
 修改为：
 app = create_app('development')
 
 ```
 
+同时，在`config.py`中定义数据库地址等信息。
 
-推荐使用[Gunicorn](http://gunicorn.org/)，步骤如下：
+第二步：
+
+启动服务，推荐使用[Gunicorn](http://gunicorn.org/)，步骤如下：
 
 ```
 gunicorn -w 3 manage:app -b 0.0.0.0:80
@@ -47,9 +49,10 @@ API设计及文档
 API采用restful API风格设计。
 
 三种类型的请求：
-GET 获取数据
-POST 创建数据
-PUT/PATCH 修改数据
+
+* GET 获取数据
+* POST 创建数据
+* PUT/PATCH 修改数据
 
 完整的API参见，[API文档-更新中](https://documenter.getpostman.com/view/2780787/RWMBQAJU#1cbc7b44-0da7-74c2-635e-0efd45567f90)。
 
