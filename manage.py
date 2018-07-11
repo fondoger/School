@@ -4,9 +4,15 @@ from flask_migrate import Migrate, MigrateCommand
 from app.models import *
 from app import models
 import sys
+import os
 
+server_type = None
+try:
+    server_type = os.environ['flask_server_type']
+except:
+    server_type = 'default'
 
-app = create_app('default')
+app = create_app(server_type)
 manager = Manager(app)
 migrate = Migrate(app, db)
 

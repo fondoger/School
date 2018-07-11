@@ -23,5 +23,6 @@ class Development(Config):
 
 config = {
     "default": Config,
+    'local': Config,
     "development": Development,
 }
