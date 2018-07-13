@@ -28,12 +28,10 @@ python manage.py runserver -h0.0.0.0 -p80
 
 
 第一步：
-修改配置文件，在项目根目录下的`manage.py`文件中，做出如下修改：
-```
-app = create_app('default')
-修改为：
-app = create_app('development')
 
+新增环境变量
+```
+export flask_server_type="development"
 ```
 
 同时，在`config.py`中定义数据库地址等信息。
