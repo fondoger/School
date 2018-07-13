@@ -26,13 +26,25 @@ def get_user():
     '''
     id = request.args.get('id', -1, type=int)
     username = request.args.get('username', '')
+    keyword = request.args.get('keyword', '')
+    offset = request.args.get('offset', 0, type=int)
+    limit = request.args.get('limit', 0, type=int)
     if id != -1:
         user = User.query.get_or_404(id)
         return jsonify(user.to_json())
     if username != '':
         user = User.query.filter_by(username=username).first_or_404()
         return jsonify(user.to_json())
+    if keyword != '':         
+        users = User.query.filter(User.username.like('%' + keyword + '%'))
+        offset = request.args.get('offset', 0, type=int)
+        limit = request.args.get('limit', 10, type=int)
+        users = users.offset(offset).limit(limit)
+        users = [u.to_json() for u in users]
+        return jsonify(users)
+
     return bad_request("参数有误")
+
 
 
 @api.route('/user', methods=['PATCH', 'PUT'])
@@ -233,13 +245,3 @@ def create_user():
             expiration=3600 * 24 * 365), 'expiration': 3600 * 24 * 365})
     return bad_request('verification_code error')
 
-@api.route('/user/search', methods=['GET'])
-@login_required
-def search_user():
-    keyword = request.args.get('keyword', '')
-    users = User.query.filter(User.username.like('%' + keyword + '%'))
-    offset = request.args.get('offset', 0, type=int)
-    limit = request.args.get('limit', 10, type=int)
-    users = users.offset(offset).limit(limit)
-    users = [u.to_json() for u in users]
-    return jsonify(users)
