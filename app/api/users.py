@@ -28,17 +28,15 @@ def get_user():
     username = request.args.get('username', '')
     keyword = request.args.get('keyword', '')
     offset = request.args.get('offset', 0, type=int)
-    limit = request.args.get('limit', 0, type=int)
+    limit = request.args.get('limit', 10, type=int)
     if id != -1:
         user = User.query.get_or_404(id)
         return jsonify(user.to_json())
     if username != '':
         user = User.query.filter_by(username=username).first_or_404()
         return jsonify(user.to_json())
-    if keyword != '':         
+    if keyword != '':
         users = User.query.filter(User.username.like('%' + keyword + '%'))
-        offset = request.args.get('offset', 0, type=int)
-        limit = request.args.get('limit', 10, type=int)
         users = users.offset(offset).limit(limit)
         users = [u.to_json() for u in users]
         return jsonify(users)
@@ -54,13 +52,13 @@ def change_user():
     """
         formdata = {
             "username":  // 新用户名
-            "avatar": 
+            "avatar":
             "self_intro":
             "password_old":
             "password_new":
         }
         功能:
-        1. 更改密码      
+        1. 更改密码
             Note: 此前发放的所有Token强制失效.
         2. 更改头像
         3. 更改用户名
