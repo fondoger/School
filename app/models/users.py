@@ -24,7 +24,7 @@ class User(UserMixin, db.Model):
     # Todo: 不能为空, 两端的字符不能为空格
     username = db.Column(db.String(32), nullable=False, unique=True,
                          index=True, default=defaultUsername)
-    password_hash = db.Column(db.String(255))
+    password_hash = db.Column(db.String(128))
     avatar = db.Column(db.String(128), nullable=False,
         default='default_avatar.jpg')
     self_intro = db.Column(db.String(40))
@@ -37,7 +37,7 @@ class User(UserMixin, db.Model):
     """ Relationships """
     # 动态
     statuses = db.relationship('Status', backref='user', lazy='dynamic')
-    status_replies = db.relationship('StatusReply', backref='user', 
+    status_replies = db.relationship('StatusReply', backref='user',
         lazy='dynamic')
     # 团体
     followed = db.relationship(
@@ -45,17 +45,17 @@ class User(UserMixin, db.Model):
         primaryjoin=(user_follows.c.follower_id == id),
         secondaryjoin=(user_follows.c.followed_id == id),
         backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
-    group_memberships = db.relationship("GroupMembership", 
+    group_memberships = db.relationship("GroupMembership",
         back_populates="user", cascade='all, delete-orphan')
     # 添加直接访问方式, 可以直接通过u.groups访问到用户所在的团体
     groups = association_proxy("group_memberships", "group")
     # 二手
     sales = db.relationship('Sale', backref='user', lazy='dynamic')
-    sale_comments = db.relationship('SaleComment', backref='user', 
+    sale_comments = db.relationship('SaleComment', backref='user',
         lazy='dynamic')
     # private messages
     messages = db.relationship('Message', backref='user', lazy='dynamic')
-    
+
     def generate_auth_token(self, expiration):
         s = Serializer('auth' + current_app.config['SECRET_KEY'],
                        expires_in=expiration)
@@ -110,7 +110,7 @@ class WaitingUser(db.Model):
     __classname = 'waiting_users'
 
     email = db.Column(db.String(64), primary_key=True)
-    password_hash = db.Column(db.String(64))
+    password_hash = db.Column(db.String(128))
 
     verification_time = db.Column(db.DateTime, default=datetime.utcnow)
     verification_code = db.Column(db.String(6), default=randomVerificationCode)
