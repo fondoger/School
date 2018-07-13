@@ -302,7 +302,7 @@ def get_status_reply():
     id = request.args.get('id', -1, type=int)
     status_id = request.args.get('status_id', -1, type=int)
     offset = request.args.get('offset', 0, type=int)
-    reverse = request.args.get('reverse', False)
+    reverse = request.args.get('reverse', False, type=bool)
     limit = request.args.get('limit', 10, type=int)
     if id != -1:
         reply = StatusReply.query.get_or_404(id)

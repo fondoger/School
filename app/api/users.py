@@ -232,3 +232,14 @@ def create_user():
         return jsonify({'user': u.to_json(), 'token': u.generate_auth_token(
             expiration=3600 * 24 * 365), 'expiration': 3600 * 24 * 365})
     return bad_request('verification_code error')
+
+@api.route('/user/search', methods=['GET'])
+@login_required
+def search_user():
+    keyword = request.args.get('keyword', '')
+    users = User.query.filter(User.username.like('%' + keyword + '%'))
+    offset = request.args.get('offset', 0, type=int)
+    limit = request.args.get('limit', 10, type=int)
+    users = users.offset(offset).limit(limit)
+    users = [u.to_json() for u in users]
+    return jsonify(users)
