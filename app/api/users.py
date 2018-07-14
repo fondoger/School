@@ -9,6 +9,7 @@ from .errors import bad_request, unauthorized, forbidden, not_found, internal_er
 from .statuses import Status
 from .. import db
 from ..models import WaitingUser, User
+from sqlalchemy import func
 
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
 # 4-30个字符，支持中英文、数字、"_"或减号, 一个中文相当于两个英文字符
@@ -37,6 +38,7 @@ def get_user():
         return jsonify(user.to_json())
     if keyword != '':
         users = User.query.filter(User.username.like('%' + keyword + '%'))
+        users = users.order_by(func.char_length(User.username))
         users = users.offset(offset).limit(limit)
         users = [u.to_json() for u in users]
         return jsonify(users)
