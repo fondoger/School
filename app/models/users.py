@@ -27,7 +27,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     avatar = db.Column(db.String(128), nullable=False,
         default='default_avatar.jpg')
-    self_intro = db.Column(db.String(40))
+    self_intro = db.Column(db.String(40), default='')
     # 用户的性别，值为1时是男性，值为2时是女性，值为0时是未知
     gender = db.Column(db.Integer, default=0)
     # user status
