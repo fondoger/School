@@ -21,7 +21,7 @@ def make_shell_context():
     return dict(app=app, db=db, models=models,
                 User=User, Status=Status, Topic=Topic,
                 Group=Group, GroupMembership=GroupMembership,
-                Activity=Activity)
+                Activity=Activity, OfficialAccount=OfficialAccount,)
 manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
 

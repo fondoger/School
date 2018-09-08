@@ -5,6 +5,7 @@ from .. import db
 from .users import User
 from .statuses import Status, StatusReply
 from .groups import Group, Activity, GroupMembership
+from .official_accounts import OfficialAccount
 
 
 def generate_fake_users(count=5):
@@ -142,14 +143,30 @@ def generate_fake_activities():
     db.session.commit()
 
 
+def generate_official_accounts():
+    accounts = [
+        ("北京航空航天大学", "default/official_acocunt_BUAA.jpg"),
+    ]
+    for name, avatar in accounts:
+        a = OfficialAccount(accountname=name, avatar=avatar)
+        db.session.add(a)
+    db.session.commit()
+
+
 def generate_fake():
     db.drop_all()
     db.create_all()
+
 
     generate_fake_users()
     generate_fake_groups()
     generate_public_groups()
     generate_fake_statuses()
     generate_fake_activities()
+    generate_official_accounts()
 
 db.generate_fake = generate_fake
+
+
+
+

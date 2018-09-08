@@ -1,15 +1,27 @@
 import os
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     DEBUG = True
-    # SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data-test.sqlite')
-    # SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://test:Yq!((&1024@localhost/TEST'
+
+    ### For sqlalchemy
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data-test.sqlite')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = '123'
     TRAP_BAD_REQUEST_ERRORS = False # For restful api
     TRAP_HTTP_EXCEPTIONS = False
+
+    ### For APScheduler
+    SCHEDULER_API_ENABLED = True
+    SCHEDULER_API_PREFIX = "/t"
+    SCHEDULER_JOBSTORES = {
+        'default': SQLAlchemyJobStore(
+            url='sqlite:///' + os.path.join(basedir, 'jobstore.sqlite')
+        ),
+    }
+    ### Others
     IMAGE_SERVER = 'http://asserts.fondoger.cn/'
 
     @staticmethod
