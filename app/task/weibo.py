@@ -38,6 +38,13 @@ class Weibo:
             "%a %b %d %H:%M:%S %z %Y")
         print(timestamp)
 
+
 def addWeiboSyncJob():
     from app import scheduler
-
+    with open("sync_weibos") as f:
+        accounts = json.load(f)
+        for account in accounts:
+            job_name = "weibo_sync_" + account['account_id']
+            def job_func()
+                
+            job_func = 
