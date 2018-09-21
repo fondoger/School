@@ -55,15 +55,18 @@ class Article(db.Model):
     站内内容以后再添加：
         有能力发文章的只能是非正式的团体，让他们通过团体发文章
         如果是个人的话，写文章肯定是首选公众号了。
-        
-    """ 
+
+    """
     id = db.Column(db.Integer, primary_key=True)
-    type_id = db.Column(db.Integer)
-    origin_url = db.Column(db.Text)
+    type_id = db.Column(db.Integer) # using type instead of type_id
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow,
+            nullable=False)
+    extra_url = db.Column(db.Text)
+    extra_key = db.Column(db.String(32))
     extra_data = db.Column(db.Text)
-    official_account_id = db.Column(db.Integer, 
+    official_account_id = db.Column(db.Integer,
         db.ForeignKey('official_accounts.id'), nullable=False)
-    
+
     """ Relationships """
     replies = db.relationship('ArticleReply', backref='article',
         lazy='dynamic', cascade='all, delete-orphan')
@@ -77,17 +80,23 @@ class Article(db.Model):
             'replies': self.replies.count(),
             'likes': self.liked_users.count(),
         }
-    
 
-    TYPES = ['WEIXIN', 'WEIBO']
+
+    TYPES = {
+        'WEIXIN': 0,
+        'WEIBO': 1,
+    }
 
     @property
     def type(self):
-        return TYPES[self.type_id]
+        for k, v in Article.TYPES:
+            if v == self.type_id:
+                return k
+        raise Exception("no such type type_id=%d" % self.type_id)
 
     @type.setter
     def type(self, type_name):
-        idx = TYPES.index(type_name)
+        idx = Article.TYPES.get(type_name, -1)
         if idx == -1:
             raise Exception("no such type")
         self.type_id = idx
@@ -100,7 +109,7 @@ subscriptions = db.Table('subscriptions',
     db.Column('users_id', db.Integer,
         db.ForeignKey('users.id'), primary_key=True),
 )
-    
+
 
 class OfficialAccount(db.Model):
     __tablename__ = 'official_accounts'
@@ -115,7 +124,7 @@ class OfficialAccount(db.Model):
     accountname = db.Column(db.String(32), nullable=False, index=True)
     description = db.Column(db.Text)
     avatar = db.Column(db.String(32), nullable=False)
-    
+
     """ Relationships """
     articles = db.relationship('Article', backref='official_account',
         lazy='dynamic', cascade='all, delete-orphan')
@@ -123,7 +132,7 @@ class OfficialAccount(db.Model):
     # OfficialAccount -> User：officialAccount.subscribers
     subscribers = db.relationship('User', secondary=subscriptions,
         lazy='dynamic', backref=db.backref("subscriptions", lazy='dynamic'))
-     
+
     def to_json(self):
         imageServer = current_app.config['IMAGE_SERVER']
         json = {

@@ -7,6 +7,7 @@ from app.algorithm.rank import Rank
 from config import config
 from app.task import add_init_jobs
 import os
+from . import task
 
 db = SQLAlchemy()
 # socketio = SocketIO()
@@ -34,6 +35,9 @@ def create_app(config_name):
 
     # for calculate rank every day
     rank.init_app(app)
+
+    # save a referece to task module
+    task.init_app(app)
 
     # Register Blueprints
     from .api import api as api_blueprint

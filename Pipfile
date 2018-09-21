@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+name = "pypi"
+verify_ssl = true
+
+[dev-packages]
+
+[requires]
+python_version = "3.5"
+
+[packages]
+flask = "*"
+flask-sqlalchemy = "*"
+flask-apscheduler = "*"
+flask-login = "*"
+flask-socketio = "*"
+flask-script = "*"
+flask-migrate = "*"
+forgerypy = "*"
+requests = "*"
+flask-httpauth = "*"
