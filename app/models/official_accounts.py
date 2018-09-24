@@ -127,7 +127,7 @@ class OfficialAccount(db.Model):
     """
 
     id = db.Column(db.Integer, primary_key=True)
-    accountname = db.Column(db.String(32), nullable=False, index=True)
+    accountname = db.Column(db.String(32), nullable=False, index=True, unique=True)
     description = db.Column(db.Text)
     avatar = db.Column(db.String(32), nullable=False)
 

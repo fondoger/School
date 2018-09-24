@@ -18,20 +18,22 @@ class Weixin:
     :var str jike_id: id of jike topic
     """
 
-    def __init__(self, account_id, jike_id):
-        self.account_id = account_id
+    def __init__(self, accountname, jike_id):
+        self.accountname = accountname
         self.jike_id = jike_id
         self.session = Session()
         self.url = "https://app.jike.ruguoapp.com/1.0/messages/history"
 
     def sync(self):
         from app import db
-        from app.models import Article
+        from app.models import Article, OfficialAccount
         from . import app
 
-        print("Syncing WeXin Official Account")
+        print("Syncing WeXin %s..." % self.accountname)
         articles = self.get_articles()
         with app.app_context():
+            account = OfficialAccount.query.filter_by(
+                accountname=self.accountname).one()
             new_articles = [
                 article for article in articles
                 if not db.session.query(exists().where(and_(
@@ -51,7 +53,7 @@ class Weixin:
                         extra_url=article['linkInfo']['originalLinkUrl'],
                         extra_data=data,
                         extra_desc=article['linkInfo']['title'],
-                        official_account_id=self.account_id)
+                        official_account=account)
                 db.session.add(article)
             db.session.commit()
 
