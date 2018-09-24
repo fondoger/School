@@ -50,16 +50,15 @@ class Weibo:
                         timestamp=self.get_timestamp(status),
                         extra_key=status['id'],
                         extra_data=data,
+                        extra_desc=status['text'],
+                        extra_url='https://m.weibo.cn/detail/' + status['id'],
                         official_account_id=self.account_id)
                 db.session.add(article)
             db.session.commit()
 
     def get_statuses(self):
         res = self.session.get(self.url, timeout=5)
-        data = res.json()['data']
-        user = data['user']
-        statuses = data['statuses']
-        return statuses
+        return res.json()['data']['statuses']
 
     def get_timestamp(self, json):
         return datetime.strptime(json['created_at'],
@@ -76,7 +75,6 @@ def weibo_sync_job(account_id, weibo_id, job_id):
         print("Sync weibo %s failed!" % weibo_id)
     # pause current job and resume next job
     resume_next_job(job_id)
-
 
 def resume_next_job(current_job_id=None):
     """ Pause current job(if exists) and resume next job"""
@@ -110,5 +108,5 @@ def add_weibo_sync_job():
                 'replace_existing': True,
             }
             scheduler.add_job(**job)
-    resume_next_job()
+    resume_next_job(None)
 

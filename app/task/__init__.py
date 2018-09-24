@@ -2,6 +2,7 @@ __all__ = ()    # hide variables from "import *"
 
 #from .. import scheduler
 from . import weibo
+from . import weixin
 
 # app variable
 app = None
@@ -55,5 +56,6 @@ def add_init_jobs():
     from app import scheduler
     print("add initial jobs")
     scheduler.add_job(**job1)
-    # add weibo sync jobs
+    # add third party account sync jobs
     weibo.add_weibo_sync_job()
+    weixin.add_weixin_sync_job()

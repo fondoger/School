@@ -1,0 +1,14 @@
+ * Serving Flask app "app" (lazy loading)
+ * Environment: production
+   WARNING: Do not use the development server in a production environment.
+   Use a production WSGI server instead.
+ * Debug mode: on
+add initial jobs
+1
+Syncing Weibo: 1
+Syncing WeXin Official Account
+Recalculate rank schedule started...
+Recalculate rank schedule done!
+'NoneType' object has no attribute 'app_context'
+Sync weibo 5396134858 failed!
+2

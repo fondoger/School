@@ -63,6 +63,7 @@ class Article(db.Model):
             nullable=False)
     extra_url = db.Column(db.Text)
     extra_key = db.Column(db.String(32))
+    extra_desc = db.Column(db.String(32))
     extra_data = db.Column(db.Text)
     official_account_id = db.Column(db.Integer,
         db.ForeignKey('official_accounts.id'), nullable=False)
@@ -79,6 +80,11 @@ class Article(db.Model):
             'text': self.text,
             'replies': self.replies.count(),
             'likes': self.liked_users.count(),
+            'type': self.type,
+            'extra_key': self.extra_key,
+            'extra_url': self.extra_url,
+            'extra_data': self.extra_data,
+            'extra_desc': self.extra_desc,
         }
 
 
