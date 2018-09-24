@@ -196,6 +196,8 @@ def get_status():
         t1 = ss.offset(offset1).first()
         t2 = articles.offset(offset2).first()
         for _ in range(offset):
+            if t1 == None or t2 == None:
+                break
             if t1.timestamp > t2.timestamp:
                 offset1 += 1
                 t1 = ss.offset(offset1).first()
