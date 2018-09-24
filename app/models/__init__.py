@@ -1,4 +1,4 @@
-from . import fake, statuses, users, groups, sales, other
+from . import statuses, users, groups, sales, other
 from .statuses import Status, StatusPicture, StatusReply, Topic
 from .users import User, WaitingUser
 from .groups import Group, GroupMembership, Activity
