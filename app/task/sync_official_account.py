@@ -49,7 +49,7 @@ def add_sync_jobs():
         accounts = json.load(f)
         for account in accounts:
             job_id = account['type'] + "_sync_" + account['source_id']
-            interval =  8 if account['type'] == 'WEIBO' else 10
+            interval =  300 if account['type'] == 'WEIBO' else 600
             job = {
                 'id': job_id,
                 'name': 'Sync job ' + account['accountname'],

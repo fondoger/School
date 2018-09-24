@@ -77,7 +77,6 @@ class Article(db.Model):
         return {
             'id': self.id,
             'type': self.type,
-            'text': self.text,
             'replies': self.replies.count(),
             'likes': self.liked_users.count(),
             'type': self.type,
@@ -85,6 +84,7 @@ class Article(db.Model):
             'extra_url': self.extra_url,
             'extra_data': self.extra_data,
             'extra_desc': self.extra_desc,
+            'official_account': self.official_account.to_json(),
         }
 
 
@@ -95,7 +95,7 @@ class Article(db.Model):
 
     @property
     def type(self):
-        for k, v in Article.TYPES:
+        for k, v in Article.TYPES.items():
             if v == self.type_id:
                 return k
         raise Exception("no such type type_id=%d" % self.type_id)

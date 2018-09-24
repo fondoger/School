@@ -4,7 +4,7 @@ from . import api
 from .utils import login_required, json_required
 from .errors import forbidden, unauthorized, bad_request, not_found
 from app import db, rank
-from app.models import User, Status, StatusPicture, StatusReply, Group, Topic
+from app.models import *
 
 TOPICREGEX = re.compile(r"#([\s\S]+?)#")
 
@@ -15,10 +15,10 @@ def create_status():
     """发表动态
     用户动态:
     json = {
-        type: USERSTATUS(0), 
+        type: USERSTATUS(0),
         text: 非空字符串,
         pics: [String], 可选,
-    } 
+    }
     团体微博:
     json = {
         type: GROUPSTATUS(1),
@@ -74,7 +74,7 @@ def create_status():
             return bad_request('title empty')
         if group is None:
             return bad_request('该团体不存在')
-        s = Status(type=Status.GROUPPOST, user=g.user, 
+        s = Status(type=Status.GROUPPOST, user=g.user,
                    group=group, title=title, text=text)
 
     if s is not None:
@@ -95,20 +95,20 @@ def get_status():
     """ 获取动态
     分类:
     1. 获取某条特定动态, 团体微博, 团体帖子
-        params = { id } 
+        params = { id }
     3. 获取个人微博(时间序)
         params = {
             type: user,
             user_id:
         }
     2. 获取团体微博(时间序)
-        params = { 
-            type: group_status, 
-            group_id: 
+        params = {
+            type: group_status,
+            group_id:
         }
     3. 获取团体帖子(热门序)
         params = {
-            type: post, 
+            type: post,
             group_id = Integer
         }
     4. 获取推荐(热门序)
@@ -122,7 +122,7 @@ def get_status():
     6. 获取话题下的微博:
         params = {
             type: topic,
-            topic_name: // 
+            topic_name: //
         }
     公共参数
         limit: 可选, default=10
@@ -189,9 +189,24 @@ def get_status():
         ss = Status.query.filter(Status.user_id.in_(followed_ids))
         # 个人关注的
         ss = ss.order_by(Status.timestamp.desc())
-        ss = ss.offset(offset).limit(limit)
-        ss = [s.to_json() for s in ss]
-        return jsonify(ss)
+        articles = Article.query.order_by(Article.timestamp.desc())
+        # TODO: rewrite this fuction for better performance
+        offset1 = 0
+        offset2 = 0
+        t1 = ss.offset(offset1).first()
+        t2 = articles.offset(offset2).first()
+        for _ in range(offset):
+            if t1.timestamp > t2.timestamp:
+                offset1 += 1
+                t1 = ss.offset(offset1).first()
+            else:
+                offset2 += 1
+                t2 = articles.offset(offset2).first()
+        ss = ss.offset(offset1).limit(limit)
+        articles = articles.offset(offset2).limit(limit)
+        res = sorted(ss.all() + articles.all(), key=lambda x: x.timestamp, reverse=True)[:limit]
+        res = [r.to_json() for r in res]
+        return jsonify(res)
 
     if type == "trending":
         ids = rank.get_mixed()[offset:offset+limit]
