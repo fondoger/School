@@ -18,12 +18,12 @@ def defaultTitle(context):
 class GroupMembership(db.Model):
     __tablename__ = 'group_memberships'
     """
-    Many to Many Relationship between User and Group 
+    Many to Many Relationship between User and Group
 
     三种类型: 持有人, 管理员, 成员
     其中, 只有持有人和管理员才能自定义称号
 
-    Note: 
+    Note:
     1. 移交所有权时, 自身变为普通成员
     """
 
@@ -31,7 +31,7 @@ class GroupMembership(db.Model):
     MEMBER = 0  # 普通成员
     ADMIN = 1   # 管理员
     OWNER = 2   # 持有者
-    
+
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'),
                             primary_key=True)
     group_id = db.Column(db.Integer, db.ForeignKey('groups.id'),
@@ -41,9 +41,9 @@ class GroupMembership(db.Model):
     title = db.Column(db.String(32), nullable=False, default=defaultTitle)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-    user = db.relationship("User", back_populates="group_memberships")  
+    user = db.relationship("User", back_populates="group_memberships")
     group = db.relationship("Group", back_populates="group_memberships")
- 
+
     def to_json(self):
         return {
             'user': self.user.to_json(),
@@ -75,7 +75,7 @@ class Group(db.Model):
     groupname = db.Column(db.String(32), nullable=False, unique=True,
                          index=True)
     description = db.Column(db.String(64))
-    avatar = db.Column(db.String(32), default='default_group_avatar.jpg',
+    avatar = db.Column(db.String(64), default='default_group_avatar.jpg',
         nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     public = db.Column(db.Boolean, default=False, nullable=False)

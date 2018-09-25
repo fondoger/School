@@ -52,7 +52,7 @@ class Weixin:
                         extra_key=article['id'],
                         extra_url=article['linkInfo']['originalLinkUrl'],
                         extra_data=data,
-                        extra_desc=article['linkInfo']['title'],
+                        extra_desc=article['linkInfo']['title'][:64],
                         official_account=account)
                 db.session.add(article)
             db.session.commit()

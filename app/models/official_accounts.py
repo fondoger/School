@@ -63,7 +63,7 @@ class Article(db.Model):
             nullable=False)
     extra_url = db.Column(db.Text)
     extra_key = db.Column(db.String(32))
-    extra_desc = db.Column(db.String(32))
+    extra_desc = db.Column(db.String(64))
     extra_data = db.Column(db.Text)
     official_account_id = db.Column(db.Integer,
         db.ForeignKey('official_accounts.id'), nullable=False)
@@ -129,7 +129,7 @@ class OfficialAccount(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     accountname = db.Column(db.String(32), nullable=False, index=True, unique=True)
     description = db.Column(db.Text)
-    avatar = db.Column(db.String(32), nullable=False)
+    avatar = db.Column(db.String(64), nullable=False)
 
     """ Relationships """
     articles = db.relationship('Article', backref='official_account',

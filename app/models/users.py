@@ -25,7 +25,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(32), nullable=False, unique=True,
                          index=True, default=defaultUsername)
     password_hash = db.Column(db.String(128))
-    avatar = db.Column(db.String(128), nullable=False,
+    avatar = db.Column(db.String(64), nullable=False,
         default='default_avatar.jpg')
     self_intro = db.Column(db.String(40), default='')
     # 用户的性别，值为1时是男性，值为2时是女性，值为0时是未知

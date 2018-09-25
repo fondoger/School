@@ -54,7 +54,7 @@ class Weibo:
                         timestamp=self.get_timestamp(status),
                         extra_key=status['id'],
                         extra_data=data,
-                        extra_desc=status['text'],
+                        extra_desc=status['text'][:64],
                         extra_url='https://m.weibo.cn/detail/' + status['id'],
                         official_account=account)
                 db.session.add(article)
