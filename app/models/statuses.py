@@ -118,7 +118,12 @@ class Status(db.Model):
             'liked_by_me': hasattr(g, 'user') and g.user in self.liked_users,
             'pics': [imageServer+p.url for p in self.pictures.order_by(StatusPicture.index)],
         }
-        if self.type == Status.TYPES["GROUP_STATUS"]:
+        if self.type == "GROUP_POST":
+            _json = {
+                'group': self.group.to_json(),
+            }
+            json.update(_json)
+        if self.type == "GROUP_STATUS":
             _json = {
                 'group': self.group.to_json(),
                 'group_user_title': self.group.get_user_title(self.user),
