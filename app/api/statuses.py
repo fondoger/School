@@ -15,20 +15,20 @@ def create_status():
     """发表动态
     用户动态:
     json = {
-        type: USERSTATUS(0),
+        type: USER_STATUS,
         text: 非空字符串,
         pics: [String], 可选,
     }
     团体微博:
     json = {
-        type: GROUPSTATUS(1),
+        type: GROUP_STATUS,
         text: 非空字符串,
         group_id: 团体id,
         pics: [String], 可选,
     }
     团体帖子:
     json = {
-        type: GROUPPOST(2),
+        type: GROUP_POST,
         text: 非空字符串,
         title: 非空字符串,
         group_id: 团体id,
@@ -46,12 +46,11 @@ def create_status():
 
     s = None
     # 用户动态:
-    if type==Status.USERSTATUS:
-        s = Status(type=Status.USERSTATUS, user=g.user, text=text)
+    if type=='USER_STATUS':
+        s = Status(type=type, user=g.user, text=text)
         # 检查话题
         topics = list(set(TOPICREGEX.findall(text)))
         for topic in topics:
-            print(topic)
             t = Topic.query.filter_by(topic=topic).first()
             if t is None:
                 t = Topic(topic=topic)
@@ -60,15 +59,15 @@ def create_status():
 
 
     # 团体微博:
-    if type==Status.GROUPSTATUS:
+    if type=='GROUP_STATUS':
         group = Group.query.get(group_id)
         if group is None:
             return bad_request('该团体不存在')
-        s = Status(type=Status.GROUPSTATUS, user=g.user,
+        s = Status(type=type, user=g.user,
                    group=group, text=text)
 
     # 团体帖子:
-    if type==Status.GROUPPOST:
+    if type=='GROUP_POST':
         group = Group.query.get(group_id)
         if title == '':
             return bad_request('title empty')
@@ -158,7 +157,7 @@ def get_status():
         group = Group.query.get(group_id)
         if group is None:
             return not_found('找不到该团体')
-        ss = Status.query.filter_by(group=group, type=Status.GROUPSTATUS)
+        ss = Status.query.filter_by(group=group, type=Status.TYPES['GROUP_STATUS'])
         ss = ss.order_by(Status.timestamp.desc())
         ss = ss.offset(offset).limit(limit)
         ss = [s.to_json() for s in ss]
@@ -168,7 +167,7 @@ def get_status():
         group = Group.query.get(group_id)
         if group is None:
             return not_found('找不到该团体')
-        ss = Status.query.filter_by(group=group, type=Status.GROUPPOST)
+        ss = Status.query.filter_by(group=group, type=Status.TYPES['GROUP_POST'])
         ss = ss.order_by(Status.timestamp.desc())
         ss = ss.offset(offset).limit(limit)
         ss = [s.to_json() for s in ss]

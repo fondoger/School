@@ -52,18 +52,19 @@ class Status(db.Model):
     __tablename__ = 'statuses'
     """
     可以分为三种类型的Status, 自行确保插入数据符合以下三类
-    1. 普通用户动态 
-       type=USERSTATUS, title=null, group_id=null, 
+    1. 普通用户动态
+       type=USERS_TATUS, title=null, group_id=null,
     2. 团体微博
-       type=GROUPSTATUS, title=null, group_id=GROUP_ID
+       type=GROUP_STATUS, title=null, group_id=GROUP_ID
     3. 团体帖子
-       type=GROUPPOST, title=NOT NULL, group_id=GROUP_ID
+       type=GROUP_POST, title=NOT NULL, group_id=GROUP_ID
     """
-
-    # Constants
-    USERSTATUS = 0
-    GROUPSTATUS = 1
-    GROUPPOST = 2
+    # status type constants
+    TYPES = {
+        "USER_STATUS": 0,
+        "GROUP_STATUS": 1,
+        "GROUP_POST": 2,
+    }
 
     # Common
     id = db.Column(db.Integer, primary_key=True)
@@ -72,7 +73,7 @@ class Status(db.Model):
         nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'),
         nullable=False)
-    type = db.Column(db.Integer, default=USERSTATUS,
+    type_id = db.Column(db.Integer, default=TYPES['USER_STATUS'],
         nullable=False)
 
     # Specific
@@ -87,8 +88,21 @@ class Status(db.Model):
 
     # Status => User : Status.liked_users,
     # User => Status : User.liked_status
-    liked_users = db.relationship('User', secondary=status_likes, lazy='dynamic', 
+    liked_users = db.relationship('User', secondary=status_likes, lazy='dynamic',
         backref=db.backref('liked_status', lazy='dynamic'))
+
+
+    @property
+    def type(self):
+        for k, v in Status.TYPES.items():
+            if v == self.type_id:
+                return k
+    @type.setter
+    def type(self, type_name):
+        idx = Status.TYPES.get(type_name, -1)
+        if idx == -1:
+            raise Exception("No such type")
+        self.type_id = idx
 
     def to_json(self):
         imageServer = 'http://asserts.fondoger.cn/'
@@ -104,15 +118,10 @@ class Status(db.Model):
             'liked_by_me': hasattr(g, 'user') and g.user in self.liked_users,
             'pics': [imageServer+p.url for p in self.pictures.order_by(StatusPicture.index)],
         }
-        if self.type == Status.GROUPSTATUS:
+        if self.type == Status.TYPES["GROUP_STATUS"]:
             _json = {
                 'group': self.group.to_json(),
                 'group_user_title': self.group.get_user_title(self.user),
-            }
-            json.update(_json)
-        if self.type == Status.GROUPPOST:
-            _json = {
-                'group': self.group.to_json(),
             }
             json.update(_json)
         return json
@@ -124,7 +133,7 @@ status_topic = db.Table('status_topic',
     db.Column('topic_id', db.Integer, db.ForeignKey('topics.id'), primary_key=True)
 )
 
-# many to one 
+# many to one
 class Topic(db.Model):
     __tablename__ = 'topics'
 
