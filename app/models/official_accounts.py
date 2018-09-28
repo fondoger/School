@@ -77,6 +77,7 @@ class Article(db.Model):
         return {
             'id': self.id,
             'type': self.type,
+            'timestamp': self.timestamp,
             'replies': self.replies.count(),
             'likes': self.liked_users.count(),
             'type': self.type,
