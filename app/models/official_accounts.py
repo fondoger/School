@@ -151,3 +151,6 @@ class OfficialAccount(db.Model):
             'subscribers': self.subscribers.count(),
         }
         return json
+
+    def __repr__(self):
+        return '<OfficialAccount: %r>' % self.accountname
