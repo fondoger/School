@@ -15,7 +15,7 @@
     },
     {
         "accountname": "「北京航空航天大学」公众号",
-        "avatar": "default/official_acocunt/avatar_BUAA.jpg",
+        "avatar": "default/official_account/avatar_BUAA.jpg",
         "description": "北航官方微信公众号同步更新",
         "type": "WEIXIN",
         "source_id": "58cce6ca5690040cf4baedf2"
