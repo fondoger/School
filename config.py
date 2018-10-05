@@ -26,7 +26,12 @@ class Config:
 
     @staticmethod
     def init_app(app):
-        pass
+        import logging
+        from logging import StreamHandler
+        #file_handler = StreamHandler()
+        file_handler = logging.FileHandler("app.log")
+        file_handler.setLevel(logging.DEBUG)
+        app.logger.addHandler(file_handler)
 
 
 class Development(Config):
