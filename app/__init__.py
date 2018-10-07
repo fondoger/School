@@ -2,15 +2,13 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_apscheduler import APScheduler
 from flask_login import LoginManager
-from flask_socketio import SocketIO
 from app.algorithm.rank import Rank
 from config import config
 from app.task import add_init_jobs
-import os
 from . import task
+import atexit
 
 db = SQLAlchemy()
-# socketio = SocketIO()
 scheduler = APScheduler()
 login_manager = LoginManager()
 login_manager.session_protection = None
@@ -21,20 +19,30 @@ def create_app(config_name):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
+    if app.debug:
+        print("create app in debug mode.")
+    else:
+        print("create app in non-debug mode.")
 
     # init flask extensions
     db.init_app(app)
     login_manager.init_app(app)
     scheduler.init_app(app) # access scheduler from app.scheduler
+    """
+    Running in gunicorn:
+    To prevent from starting multiple scheduler when running app in gunicorn
+    with multiple workers, add `--preload` argument.
+    Read: https://stackoverflow.com/questions/16053364
+    """
     if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
 		# prevents scheduler start twice (only in debug mode)
 		# https://stackoverflow.com/questions/14874782
         scheduler.start()
         add_init_jobs()
-    # socketio.init_app(app)
+        atexit.register(lambda: scheduler.shutdown())
 
     # for calculate rank every day
-    rank.init_app(app)
+    #rank.init_app(app)
 
     # save a referece to task module
     task.init_app(app)
