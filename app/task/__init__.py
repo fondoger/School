@@ -5,11 +5,6 @@ __all__ = ()    # hide variables from "import *"
 #from . import weixin
 from . import sync_official_account
 
-# app variable
-app = None
-def init_app(_app):
-    global app
-    app = _app
 
 ### jobs to be loaded at start
 jobs = []

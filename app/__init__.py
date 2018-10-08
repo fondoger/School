@@ -5,7 +5,6 @@ from flask_login import LoginManager
 from app.algorithm.rank import Rank
 from config import config
 from app.task import add_init_jobs
-from . import task
 import atexit
 import os
 
@@ -29,6 +28,7 @@ def create_app(config_name):
     db.init_app(app)
     login_manager.init_app(app)
     scheduler.init_app(app) # access scheduler from app.scheduler
+
     """
     Running in gunicorn:
     To prevent from starting multiple scheduler when running app in gunicorn
@@ -41,12 +41,11 @@ def create_app(config_name):
         scheduler.start()
         add_init_jobs()
         atexit.register(lambda: scheduler.shutdown())
+        print("Scheduler started...")
 
     # for calculate rank every day
-    #rank.init_app(app)
+    rank.init_app(app)
 
-    # save a referece to task module
-    task.init_app(app)
 
     # Register Blueprints
     from .api import api as api_blueprint

@@ -148,6 +148,7 @@ class OfficialAccount(db.Model):
             'avatar': imageServer + self.avatar,
             'accountname': self.accountname,
             'description': self.description,
+            'page_url': self.page_url,
             'articles': self.articles.count(),
             'subscribers': self.subscribers.count(),
         }
