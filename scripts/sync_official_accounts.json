@@ -4,20 +4,23 @@
         "avatar": "default/official_account/avatar_BUAA.jpg",
         "description": "北航官方微博同步更新",
         "type": "WEIBO",
-        "source_id": "5396134858"
+        "source_id": "5396134858",
+        "page_url": "https://m.weibo.cn/u/5396134858"
     },
     {
         "accountname": "「北京航空航天大学」公众号",
         "avatar": "default/official_account/avatar_BUAA.jpg",
         "description": "北航官方微信公众号同步更新",
         "type": "WEIXIN",
-        "source_id": "58cce6ca5690040cf4baedf2"
+        "source_id": "58cce6ca5690040cf4baedf2",
+        "page_url": "https://weixin.sogou.com/weixinwap?query=BUAA_1952"
     },
     {
         "accountname": "「微言航语」公众号",
         "avatar": "default/official_account/avatar_WeiYanHangYu.jpg",
         "description": "微言航语公众号同步更新",
         "type": "WEIXIN",
-        "source_id": "5ba8999c8c0b4f00171a6f93"
+        "source_id": "5ba8999c8c0b4f00171a6f93",
+        "page_url": "https://weixin.sogou.com/weixinwap?query=buaaxsc"
     }
 ]

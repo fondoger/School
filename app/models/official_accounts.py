@@ -131,6 +131,7 @@ class OfficialAccount(db.Model):
     accountname = db.Column(db.String(32), nullable=False, index=True, unique=True)
     description = db.Column(db.Text)
     avatar = db.Column(db.String(64), nullable=False)
+    page_url = db.Column(db.String(64))
 
     """ Relationships """
     articles = db.relationship('Article', backref='official_account',

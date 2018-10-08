@@ -7,6 +7,7 @@ from config import config
 from app.task import add_init_jobs
 from . import task
 import atexit
+import os
 
 db = SQLAlchemy()
 scheduler = APScheduler()
