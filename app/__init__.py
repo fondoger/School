@@ -5,6 +5,7 @@ from flask_login import LoginManager
 from app.algorithm.rank import Rank
 from config import config
 from app.task import add_init_jobs
+from app import task
 import atexit
 import os
 
@@ -27,6 +28,7 @@ def create_app(config_name):
     # init flask extensions
     db.init_app(app)
     login_manager.init_app(app)
+    task.init_app(app)
     scheduler.init_app(app) # access scheduler from app.scheduler
 
     """
