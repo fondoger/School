@@ -5,6 +5,8 @@ from .utils import login_required, json_required
 from .errors import forbidden, unauthorized, bad_request, not_found
 from .. import db
 from ..models import User, TextMessage, Message
+from sqlalchemy.sql import text
+from sqlalchemy import func
 
 
 @api.route('/message', methods=['POST'])
@@ -54,17 +56,21 @@ def get_message():
 
     if with_id != -1:
         messages = g.user.messages.filter_by(with_id=with_id)
-        messages_unread = messages.filter_by(is_read=False)
         for m in messages:
             m.is_read = True
             db.session.add(m)
         else:
-            db.session.commit()       
+            db.session.commit()
         messages = messages.offset(offset).limit(limit)
         messages = [m.to_json() for m in messages]
         return jsonify(messages)
 
-    messages = g.user.messages.order_by(Message.id.desc()).group_by(Message.with_id)
+
+    # Not working due to `ONLY_FULL_GROUP_BY` in mysql
+    #messages = g.user.messages.order_by(Message.id.desc()).group_by(Message.with_id)
+    subquery = db.session.query(func.max(Message.id)).filter_by(user_id=g.user.id)\
+        .group_by(Message.with_id)
+    messages = Message.query.filter(Message.id.in_(subquery)).all()
     messages = [m.to_json(True) for m in messages]
     return jsonify(messages)
 
