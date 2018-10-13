@@ -5,6 +5,7 @@ from .utils import login_required, json_required
 from .errors import forbidden, unauthorized, bad_request, not_found
 from app import db, rank
 from app.models import *
+from sqlalchemy.sql import text
 
 TOPICREGEX = re.compile(r"#([\s\S]+?)#")
 
@@ -179,6 +180,32 @@ def get_status():
         ss = [s.to_json() for s in ss]
         rank.get_fresh()
         return jsonify(ss)
+
+    if type == 'timeline':
+        if g.user.is_anonymous:
+            return jsonify([])
+        sql2 = """
+        select * from (
+            select 0 as kind, id, timestamp
+            from statuses where user_id=:UID or user_id in (
+                select followed_id from user_follows as F where F.follower_id==:UID
+            )
+            union
+            select 1 as kind, id, timestamp
+            from articles
+        ) order by timestamp limit :LIMIT offset :OFFSET;
+        """
+        result = db.engine.execute(text(sql2), UID=g.user.id,
+                LIMIT=limit, OFFSET=offset)
+        result = list(result)
+        status_ids = [ item['id'] for item in result if item['kind'] == 0]
+        article_ids = [ item['id'] for item in result if item['kind'] == 1 ]
+        statuses = Status.query.filter(Status.id.in_(status_ids)).all()
+        articles = Article.query.filter(Article.id.in_(article_ids)).all()
+        res = statuses + articles
+        res = sorted(res, key=lambda x: x.timestamp, reverse=True)
+        res = [item.to_json() for item in res]
+        return jsonify(res)
 
     if type == 'timeline':
         if g.user.is_anonymous:
