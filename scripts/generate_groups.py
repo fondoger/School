@@ -20,7 +20,7 @@ def generate_private_groups():
 def generate_public_groups():
     print("generating public groups...")
     public_groups = [
-        {'category': '活在北航', 'groupname': '北航杂谈', 'avatar': 'default/group_avatar_zatan.jpg'},
+        {'category': '活在北航', 'groupname': '谈天说地', 'avatar': 'default/group_avatar_zatan.jpg'},
         {'category': '活在北航', 'groupname': '问答互助', 'avatar': 'default/group_avatar_huzhu.jpg'},
         {'category': '活在北航', 'groupname': '聊天交友', 'avatar': 'default/group_avatar_jiaoyou.jpg'},
         {'category': '兴趣爱好', 'groupname': '影视交流'},
