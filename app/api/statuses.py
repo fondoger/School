@@ -73,7 +73,7 @@ def create_status():
             return bad_request('title empty')
         if group is None:
             return bad_request('该团体不存在')
-        s = Status(type=Status.GROUPPOST, user=g.user,
+        s = Status(type=type, user=g.user,
                    group=group, title=title, text=text)
 
     if s is not None:
@@ -157,7 +157,7 @@ def get_status():
         group = Group.query.get(group_id)
         if group is None:
             return not_found('找不到该团体')
-        ss = Status.query.filter_by(group=group, type=Status.TYPES['GROUP_STATUS'])
+        ss = Status.query.filter_by(group=group, type_id=Status.TYPES['GROUP_STATUS'])
         ss = ss.order_by(Status.timestamp.desc())
         ss = ss.offset(offset).limit(limit)
         ss = [s.to_json() for s in ss]
@@ -167,7 +167,7 @@ def get_status():
         group = Group.query.get(group_id)
         if group is None:
             return not_found('找不到该团体')
-        ss = Status.query.filter_by(group=group, type=Status.TYPES['GROUP_POST'])
+        ss = Status.query.filter_by(group=group, type_id=Status.TYPES['GROUP_POST'])
         ss = ss.order_by(Status.timestamp.desc())
         ss = ss.offset(offset).limit(limit)
         ss = [s.to_json() for s in ss]
