@@ -188,12 +188,12 @@ def get_status():
         select * from (
             select 0 as kind, id, timestamp
             from statuses where user_id=:UID or user_id in (
-                select followed_id from user_follows as F where F.follower_id==:UID
+                select followed_id from user_follows as F where F.follower_id=:UID
             )
             union
             select 1 as kind, id, timestamp
             from articles
-        ) order by timestamp limit :LIMIT offset :OFFSET;
+        ) as t order by timestamp DESC limit :LIMIT offset :OFFSET;
         """
         result = db.engine.execute(text(sql2), UID=g.user.id,
                 LIMIT=limit, OFFSET=offset)
