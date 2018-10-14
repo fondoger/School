@@ -6,7 +6,7 @@ import os
 
 def generate_buaa_news_accounts():
     print('generating official accounts...')
-    path = os.path.join(os.path.dirname(__file__), 'sync_buaa_news.json')
+    path = os.path.join(os.path.dirname(__file__), 'sync_buaa_news_accounts.json')
     with open(path) as f:
         accounts = json.load(f)
         for account in accounts:

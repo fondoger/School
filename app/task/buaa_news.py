@@ -1,10 +1,6 @@
-import time
-import pytz
-import os
 import json
 from requests import Session
 from datetime import datetime
-from functools import reduce
 from sqlalchemy.sql import exists
 from sqlalchemy import and_
 from bs4 import BeautifulSoup
@@ -15,7 +11,6 @@ class BUAANews:
     :var str account_id: id of OfficialAccount
     :var str weibo_id: id of Weibo
     """
-
 
     def __init__(self, accountname, page_key):
         self.base_url = "http://news.buaa.edu.cn/"
@@ -70,7 +65,6 @@ class BUAANews:
         :param article dict: {"key": key, "title": title}
         """
         article_url = self.base_url + article['key']
-        print(article_url)
         res = self.session.get(article_url, timeout=10)
         soup = BeautifulSoup(res.content, "lxml")
         main = soup.find("div", id="vsb_content")

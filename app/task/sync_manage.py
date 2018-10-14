@@ -12,8 +12,6 @@ def do_sync_job(worker_class, account_info, job_id):
     # create a worker instance
     worker = worker_class(account_info['accountname'],
                           account_info['source_id'])
-    worker.sync()
-    return
     try:
         worker.sync()
     except Exception as e:
