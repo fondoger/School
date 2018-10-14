@@ -58,7 +58,14 @@ def add_init_jobs():
     print("add initial jobs")
     scheduler.add_job(**job1)
     # add third party account sync jobs
-    #weibo.add_weibo_sync_job()
-    #weixin.add_weixin_sync_job()
-    sync_official_account.add_sync_jobs()
+    from . import sync_manage
+    from .weibo import Weibo
+    from .weixin import Weixin
+    from .buaa_news import BUAANews
+    sync_manage.add_sync_jobs(Weibo, "scripts/sync_weibo_accounts.json", 60*10)
+    sync_manage.add_sync_jobs(Weixin, "scripts/sync_weixin_accounts.json", 60*15)
+    sync_manage.add_sync_jobs(BUAANews, "scripts/sync_buaa_news_accounts.json", 60*10)
+
+
+
 

@@ -92,6 +92,7 @@ class Article(db.Model):
     TYPES = {
         'WEIXIN': 0,
         'WEIBO': 1,
+        'BUAANEWS': 2,
     }
 
     @property
