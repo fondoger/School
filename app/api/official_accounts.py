@@ -1,4 +1,4 @@
-from flask import request, g, jsonify, url_for
+from flask import request, g, jsonify
 from . import api
 from .utils import login_required, json_required
 from .errors import forbidden, unauthorized, bad_request, not_found
@@ -16,18 +16,19 @@ def get_official_account():
     type = request.args.get('type', '')
     if id != -1:
         account = OfficialAccount.query.get(id)
-        if group is None:
+        if account is None:
             return not_found('找不到该订阅号')
         return jsonify(account.to_json())
+    if type == 'all':
+        accounts = [a.to_json() for a in OfficialAccount.query]
+        return jsonify(accounts)
+    return bad_request('参数有误')
 
-    accounts = [a.to_json() for a in OfficialAccount.query]
-    return jsonify(accounts)
-
-@api.route('/official_account/subscription', method=['POST'])
+@api.route('/official_account/subscription', methods=['POST'])
 @login_required
 def create_official_account_subscription():
-    id = request.args.get('id', -1, type=int)
-    official_account = OfficialAccount.qurey.get(id)
+    id = request.json.get('id', -1)
+    official_account = OfficialAccount.query.get(id)
     if official_account is None:
         return not_found('找不到该订阅号')
     if g.user in official_account.subscribers:
@@ -37,10 +38,10 @@ def create_official_account_subscription():
     db.session.commit()
     return jsonify({'message': 'subscribe success'})
 
-@api.route('/official_account/subscription', method=['DELETE'])
+@api.route('/official_account/subscription', methods=['DELETE'])
 @login_required
 def delete_official_account_subscription():
-    id = request.args.get('id', -1, type=int)
+    id = request.args.get('id', -1)
     official_account = OfficialAccount.query.get(id)
     if official_account is None:
         return not_found('找不到该订阅号')
@@ -48,7 +49,7 @@ def delete_official_account_subscription():
         return jsonify({'message': 'already unsubscribed'})
     official_account.subscribers.remove(g.user)
     db.session.commit()
-    return josnify({'message': 'unsubscribe success'})
+    return jsonify({'message': 'unsubscribe success'})
 
 
 
