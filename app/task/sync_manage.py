@@ -1,5 +1,4 @@
 import time
-import os
 import json
 from functools import reduce
 
@@ -8,9 +7,10 @@ from functools import reduce
 PREVIOUS_RUN_TIME = {}
 
 
-def do_sync_job(worker_class, account_info, job_id):
+def do_sync_job(worker_wrapper, account_info, job_id):
+    Worker = worker_wrapper.worker_cls
     # create a worker instance
-    worker = worker_class(account_info['accountname'],
+    worker = Worker(account_info['accountname'],
                           account_info['source_id'])
     try:
         worker.sync()
@@ -37,7 +37,7 @@ def resume_next_job(job_id_prefix, current_job_id=None):
     PREVIOUS_RUN_TIME[next_job_id] = time.time()
 
 
-def add_sync_jobs(worker_class, account_info_file, interval):
+def add_sync_jobs(worker_wrapper, account_info_file, interval):
     from app import scheduler
     with open(account_info_file) as f:
         accounts = json.load(f)
@@ -49,7 +49,7 @@ def add_sync_jobs(worker_class, account_info_file, interval):
                 'id': job_id,
                 'name': "Sync job " + account_info['accountname'],
                 'func': "app.task.sync_manage:do_sync_job",
-                'args': (worker_class, account_info, job_id),
+                'args': (worker_wrapper, account_info, job_id),
                 'trigger': 'interval',
                 'seconds': interval,
                 'next_run_time': None, # pause the job initially

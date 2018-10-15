@@ -1,9 +1,5 @@
 __all__ = ()    # hide variables from "import *"
 
-#from .. import scheduler
-#from . import weibo
-#from . import weixin
-from . import sync_official_account
 
 # Save a app reference for weibo.py
 app = None
@@ -57,14 +53,20 @@ def add_init_jobs():
     from app import scheduler
     print("add initial jobs")
     scheduler.add_job(**job1)
+
     # add third party account sync jobs
     from . import sync_manage
     from .weibo import Weibo
     from .weixin import Weixin
     from .buaa_news import BUAANews
-    sync_manage.add_sync_jobs(Weibo, "scripts/sync_weibo_accounts.json", 60*10)
-    sync_manage.add_sync_jobs(Weixin, "scripts/sync_weixin_accounts.json", 60*15)
-    sync_manage.add_sync_jobs(BUAANews, "scripts/sync_buaa_news_accounts.json", 60*10)
+    from .worker_wrapper import WorkerWrapper
+
+    weibo = WorkerWrapper(Weibo)
+    weixin = WorkerWrapper(Weixin)
+    news = WorkerWrapper(BUAANews)
+    sync_manage.add_sync_jobs(weibo, "scripts/sync_weibo_accounts.json", 60*10)
+    sync_manage.add_sync_jobs(weixin, "scripts/sync_weixin_accounts.json", 60*15)
+    sync_manage.add_sync_jobs(news, "scripts/sync_buaa_news_accounts.json", 60*10)
 
 
 
