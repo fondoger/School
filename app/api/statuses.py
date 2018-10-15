@@ -207,34 +207,6 @@ def get_status():
         res = [item.to_json() for item in res]
         return jsonify(res)
 
-    if type == 'timeline':
-        if g.user.is_anonymous:
-            return jsonify([])
-        followed_ids = [u.id for u in g.user.followed]
-        followed_ids.append(g.user.id)
-        ss = Status.query.filter(Status.user_id.in_(followed_ids))
-        # 个人关注的
-        ss = ss.order_by(Status.timestamp.desc())
-        articles = Article.query.order_by(Article.timestamp.desc())
-        # TODO: rewrite this fuction for better performance
-        offset1 = 0
-        offset2 = 0
-        t1 = ss.offset(offset1).first()
-        t2 = articles.offset(offset2).first()
-        for _ in range(offset):
-            if t1 == None or t2 == None:
-                break
-            if t1.timestamp > t2.timestamp:
-                offset1 += 1
-                t1 = ss.offset(offset1).first()
-            else:
-                offset2 += 1
-                t2 = articles.offset(offset2).first()
-        ss = ss.offset(offset1).limit(limit)
-        articles = articles.offset(offset2).limit(limit)
-        res = sorted(ss.all() + articles.all(), key=lambda x: x.timestamp, reverse=True)[:limit]
-        res = [r.to_json() for r in res]
-        return jsonify(res)
 
     if type == "trending":
         ids = rank.get_mixed()[offset:offset+limit]

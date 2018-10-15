@@ -179,7 +179,7 @@ def delete_user_followed():
     g.user.followed.remove(user)
     db.session.add(g.user)
     db.session.commit()
-    return jsonify({'message': 'unfollowed success'})
+    return jsonify({'message': 'unfollow success'})
 
 
 @api.route('/user/group', methods=['GET'])
