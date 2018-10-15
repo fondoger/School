@@ -48,6 +48,7 @@ class BUAANews:
                 data = {
                     "pic_url": article['pic_url'],
                     "text": article['text'],
+                    "title": article['title'],
                 }
                 extra_data = json.dumps(data, ensure_ascii=False)
                 a = Article(type="BUAANEWS",
