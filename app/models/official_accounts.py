@@ -113,7 +113,7 @@ class Article(db.Model):
 subscriptions = db.Table('subscriptions',
     db.Column('official_account_id', db.Integer,
         db.ForeignKey('official_accounts.id'), primary_key=True),
-    db.Column('users_id', db.Integer,
+    db.Column('user_id', db.Integer,
         db.ForeignKey('users.id'), primary_key=True),
 )
 

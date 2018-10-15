@@ -192,7 +192,9 @@ def get_status():
             )
             union
             select 1 as kind, id, timestamp
-            from articles
+            from articles where official_account_id in (
+                select official_account_id from subscriptions as S where S.user_id=:UID
+            )
         ) as t order by timestamp DESC limit :LIMIT offset :OFFSET;
         """
         result = db.engine.execute(text(sql2), UID=g.user.id,
