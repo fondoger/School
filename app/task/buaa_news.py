@@ -28,7 +28,6 @@ class BUAANews:
         articles = self.get_articles()
         new_articles = None
         with app.app_context():
-            print(self.accountname)
             account = OfficialAccount.query.filter_by(
                 accountname=self.accountname).one()
             new_articles = [
@@ -53,7 +52,7 @@ class BUAANews:
                 }
                 extra_data = json.dumps(data, ensure_ascii=False)
                 a = Article(type="BUAANEWS",
-                        timestamp=self.parse_time(article['time']),
+                        timestamp=self.parse_time(article['date']),
                         extra_key=article['key'],
                         extra_data=extra_data,
                         extra_desc=article['title'],
@@ -61,6 +60,7 @@ class BUAANews:
                         official_account=account)
                 db.session.add(a)
             db.session.commit()
+        print("Finished sync.")
 
     def get_article_detail(self, article):
         """
@@ -86,30 +86,31 @@ class BUAANews:
         res = {
             "key": article['key'],
             "title": article['title'],
+            "date": article['date'],
             "text": text,
             "pic_url": img_url,
         }
         return res
 
-    def parse_time(time: str):
-        utctime = datetime.strptime(time + "+0800",
-                "%Y-%m-%d%z").astimezone(pytz.utc)
+    def parse_time(self, date: str):
+        utctime = datetime.strptime(date + "+0800",
+                "%Y-%m-%d%z")
         now = datetime.utcnow()
         timestamp = utctime.replace(hour=now.hour, minute=now.minute)
-        return timestamp
+        return timestamp.astimezone(pytz.utc)
 
     def get_articles(self):
-        page_url = self.base_url + self.page_key
+        page_url = self.base_url + self.page_key + ".htm"
         res = self.session.get(page_url, timeout=10)
         soup = BeautifulSoup(res.content, "lxml")
         articles = soup.find_all("div", class_="listleftop1")
         res = []
         for article in articles:
             a = article.find("a")
-            time = article.find("em").string[1:-1]
+            date = article.find("em").string[1:-1]
             url = a['href']
             title = a.string
-            res.append({"key": url, "title": title, "time": time})
+            res.append({"key": url, "title": title, "date": date})
         return res
 
 

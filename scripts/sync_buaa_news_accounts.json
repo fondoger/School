@@ -4,7 +4,7 @@
         "avatar": "default/official_account/avatar_buaa_art_news.jpg",
         "description": "北航新闻网学术与文化活动板块同步更新",
         "type": "BUAANEWS",
-        "source_id": "xsjwhhd_new.htm",
+        "source_id": "xsjwhhd_new",
         "page_url": "http://news.buaa.edu.cn/xsjwhhd_new.htm"
     },
     {
@@ -12,7 +12,7 @@
         "avatar": "default/official_account/avatar_buaa_news.jpg",
         "description": "北航新闻网综合新闻板块同步更新",
         "type": "BUAANEWS",
-        "source_id": "zhxw_new.htm",
+        "source_id": "zhxw_new",
         "page_url": "http://news.buaa.edu.cn/zhxw_new.htm"
     },
     {
@@ -20,7 +20,7 @@
         "avatar": "default/official_account/avatar_buaa_notice_news.jpg",
         "description": "北航新闻网信息公告板块同步更新",
         "type": "BUAANEWS",
-        "source_id": "xxgg_new.htm",
+        "source_id": "xxgg_new",
         "page_url": "http://news.buaa.edu.cn/xxgg_new.htm"
     }
 ]
