@@ -65,7 +65,7 @@ def add_init_jobs():
     weixin = WorkerWrapper(Weixin)
     news = WorkerWrapper(BUAANews)
     sync_manage.add_sync_jobs(weibo, "scripts/sync_weibo_accounts.json", 60*10)
-    sync_manage.add_sync_jobs(weixin, "scripts/sync_weixin_accounts.json", 60*15)
+    sync_manage.add_sync_jobs(weixin, "scripts/sync_weixin_accounts.json", 60*10)
     sync_manage.add_sync_jobs(news, "scripts/sync_buaa_news_accounts.json", 60*10)
 
 
