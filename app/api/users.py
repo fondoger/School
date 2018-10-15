@@ -8,14 +8,14 @@ from .authentication import auth
 from .errors import bad_request, unauthorized, forbidden, not_found, internal_error
 from .statuses import Status
 from .. import db
-from ..models import WaitingUser, User
+from ..models import WaitingUser, User, OfficialAccount
 from sqlalchemy import func
 
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
 # 4-30个字符，支持中英文、数字、"_"或减号, 一个中文相当于两个英文字符
 USERNAME_REGEX = re.compile(r"^[\u4e00-\u9fa5_a-zA-Z0-9\-]{2,30}$")
 CHINESE_CHARACTER = re.compile(r"[\u4e00-\u9fa5]")
-# 最少8位数, 最少含有1个数子和1个字母
+# 最少8位数, 最少含有1个数字和1个字母
 PASSWORD_REGEX = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$")
 aliyun = AliyunEmail()
 
@@ -230,6 +230,15 @@ def creat_waiting_user():
         return internal_error("failed sending email")
 
 
+def user_first_created(u):
+    developer = User.query.get(1)
+    developer.followers.append(u)
+    db.sesion.add(u)
+    for a in OfficialAccount.query:
+        a.subscribers.append(u)
+        db.session.add(a)
+
+
 @api.route('/user', methods=['POST'])
 @json_required
 def create_user():
@@ -240,6 +249,7 @@ def create_user():
         u = User(email=wu.email, password_hash=wu.password_hash)
         db.session.add(u)
         db.session.delete(wu)
+        user_first_created(u)
         db.session.commit()
         return jsonify({'user': u.to_json(), 'token': u.generate_auth_token(
             expiration=3600 * 24 * 365), 'expiration': 3600 * 24 * 365})
