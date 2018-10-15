@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy.sql import exists
 from sqlalchemy import and_
 from bs4 import BeautifulSoup
+import pytz
 
 
 class BUAANews:
@@ -52,7 +53,7 @@ class BUAANews:
                 }
                 extra_data = json.dumps(data, ensure_ascii=False)
                 a = Article(type="BUAANEWS",
-                        timestamp=datetime.utcnow(),
+                        timestamp=self.parse_time(article['time']),
                         extra_key=article['key'],
                         extra_data=extra_data,
                         extra_desc=article['title'],
@@ -90,6 +91,13 @@ class BUAANews:
         }
         return res
 
+    def parse_time(time: str):
+        utctime = datetime.strptime(time + "+0800",
+                "%Y-%m-%d%z").astimezone(pytz.utc)
+        now = datetime.utcnow()
+        timestamp = utctime.replace(hour=now.hour, minute=now.minute)
+        return timestamp
+
     def get_articles(self):
         page_url = self.base_url + self.page_key
         res = self.session.get(page_url, timeout=10)
@@ -98,9 +106,10 @@ class BUAANews:
         res = []
         for article in articles:
             a = article.find("a")
+            time = article.find("em").string[1:-1]
             url = a['href']
             title = a.string
-            res.append({"key": url, "title": title})
+            res.append({"key": url, "title": title, "time": time})
         return res
 
 
