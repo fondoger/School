@@ -5,7 +5,11 @@ from .users import User
 from random import randint
 from sqlalchemy.ext.associationproxy import association_proxy
 
+
+
 # many to many
+# Typo: `users_id` should be `user_id`, but it's not easy to recorrect it
+# As it won't influence my python code, so i decide to not change it
 article_likes = db.Table('article_likes',
     db.Column('article_id', db.Integer, db.ForeignKey('articles.id'), primary_key=True),
     db.Column('users_id', db.Integer, db.ForeignKey('users.id'), primary_key=True)
@@ -110,10 +114,12 @@ class Article(db.Model):
 
 
 # many to many
+# Typo: `users_id` should be `user_id`, but it's not easy to recorrect it
+# As it won't influence my python code, so i decide to not change it
 subscriptions = db.Table('subscriptions',
     db.Column('official_account_id', db.Integer,
         db.ForeignKey('official_accounts.id'), primary_key=True),
-    db.Column('user_id', db.Integer,
+    db.Column('users_id', db.Integer,
         db.ForeignKey('users.id'), primary_key=True),
 )
 
