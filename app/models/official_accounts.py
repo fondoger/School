@@ -80,7 +80,6 @@ class Article(db.Model):
             'timestamp': self.timestamp,
             'replies': self.replies.count(),
             'likes': self.liked_users.count(),
-            'type': self.type,
             'extra_key': self.extra_key,
             'extra_url': self.extra_url,
             'extra_data': self.extra_data,
@@ -152,6 +151,7 @@ class OfficialAccount(db.Model):
             'page_url': self.page_url,
             'articles': self.articles.count(),
             'subscribers': self.subscribers.count(),
+            'followed_by_me': g.user in self.subscribers if g.user else False,
         }
         return json
 
