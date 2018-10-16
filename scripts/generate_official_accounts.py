@@ -6,7 +6,7 @@ import os
 
 def generate_official_accounts():
     print('generating official accounts...')
-    path = os.path.join(os.path.dirname(__file__), 'sync_official_accounts.json')
+    path = os.path.join(os.path.dirname(__file__), 'sync_buaa_art_news_accounts.json')
     with open(path) as f:
         accounts = json.load(f)
         for account in accounts:
@@ -16,7 +16,8 @@ def generate_official_accounts():
                 print("official account %s already exits" % account['accountname'])
                 continue
             a = OfficialAccount(accountname=account['accountname'],
-                    avatar=account['avatar'], description=account['description'])
+                    avatar=account['avatar'], description=account['description'],
+                    page_url=account['page_url'])
             db.session.add(a)
             print("create official account %s" % account['accountname'])
         db.session.commit()

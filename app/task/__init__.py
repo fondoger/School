@@ -59,14 +59,17 @@ def add_init_jobs():
     from .weibo import Weibo
     from .weixin import Weixin
     from .buaa_news import BUAANews
+    from .buaa_art_gallery import BUAAArt
     from .worker_wrapper import WorkerWrapper
 
     weibo = WorkerWrapper(Weibo)
     weixin = WorkerWrapper(Weixin)
     news = WorkerWrapper(BUAANews)
+    buaa_art = WorkerWrapper(BUAAArt)
     sync_manage.add_sync_jobs(weibo, "scripts/sync_weibo_accounts.json", 60*10)
     sync_manage.add_sync_jobs(weixin, "scripts/sync_weixin_accounts.json", 60*10)
     sync_manage.add_sync_jobs(news, "scripts/sync_buaa_news_accounts.json", 60*10)
+    sync_manage.add_sync_jobs(buaa_art, "scripts/sync_buaa_art_news_accounts.json", 3600)
 
 
 
