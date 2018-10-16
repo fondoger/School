@@ -233,7 +233,7 @@ def creat_waiting_user():
 def user_first_created(u):
     developer = User.query.get(1)
     developer.followers.append(u)
-    db.sesion.add(u)
+    db.session.add(u)
     for a in OfficialAccount.query:
         a.subscribers.append(u)
         db.session.add(a)
