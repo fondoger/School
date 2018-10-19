@@ -4,9 +4,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask import current_app, g
 from random import randint
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from .. import db
+from app import db, rd
 from sqlalchemy.ext.associationproxy import association_proxy
 from time import time
+import pickle
 
 user_follows = db.Table('user_follows',
     db.Column('follower_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
@@ -64,12 +65,31 @@ class User(UserMixin, db.Model):
     @staticmethod
     def verify_auth_token(token):
         """ Get current User from token """
+        token_key = "utoken:{}".format(token)
+        data = rd.get(token_key)
+        if data != None:
+            print("Hit at redis", token_key)
+            return User.from_id(data.decode())
         s = Serializer('auth' + current_app.config['SECRET_KEY'])
         try:
             data = s.loads(token)
+            rd.set(token_key, data['id'], ex=3600*24*7)
+            return User.from_id(data['id'])
         except:
             return None
-        return User.query.get(data['id'])
+
+    @staticmethod
+    def from_id(id: str):
+        user_key = "user:{}".format(id)
+        data = rd.get(user_key)
+        if data != None:
+            print("Hit at redis", user_key)
+            return pickle.loads(data)
+        user = User.query.get(id)
+        if user:
+            data = pickle.dumps(user)
+            rd.set(user_key, data, ex=3600*24*3)
+        return user
 
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)

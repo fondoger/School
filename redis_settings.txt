@@ -1,0 +1,4 @@
+# 先安装redis-py, 再安装flask-redis,确保最新版
+pip install redis
+pip install flask-redis
+pip install hiredis

@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_redis import FlaskRedis
 from flask_apscheduler import APScheduler
 from flask_login import LoginManager
 from app.algorithm.rank import Rank
@@ -10,6 +11,7 @@ import atexit
 import os
 
 db = SQLAlchemy()
+rd = FlaskRedis()
 scheduler = APScheduler()
 login_manager = LoginManager()
 login_manager.session_protection = None
@@ -27,6 +29,9 @@ def create_app(config_name):
 
     # init flask extensions
     db.init_app(app)
+    # Do not use decode_responses=True here,
+    # because we need to store/read bytes data
+    rd.init_app(app)
     login_manager.init_app(app)
     task.init_app(app)
     scheduler.init_app(app) # access scheduler from app.scheduler

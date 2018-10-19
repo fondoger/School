@@ -15,7 +15,7 @@ def verify_user(email_or_token, password):
         2. Normal User(via password or token)
         Returns False for invalid credentials.
     '''
-    # g.token_used for get_token() 
+    # g.token_used for get_token()
     if email_or_token == '':
         g.user = AnonymousUser()
         return True

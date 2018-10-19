@@ -13,6 +13,9 @@ class Config:
     TRAP_BAD_REQUEST_ERRORS = False # For restful api
     TRAP_HTTP_EXCEPTIONS = False
 
+    ### For Flask-Redis
+    REDIS_URL = 'redis://@localhost:6379/0'
+
     ### For APScheduler
     SCHEDULER_API_ENABLED = True
     SCHEDULER_API_PREFIX = "/t"
