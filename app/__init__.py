@@ -51,7 +51,7 @@ def create_app(config_name):
         print("Scheduler started...")
 
     # for calculate rank every day
-    rank.init_app(app)
+    #rank.init_app(app)
 
 
     # Register Blueprints

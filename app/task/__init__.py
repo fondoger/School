@@ -51,8 +51,8 @@ for job in jobs:
 
 def add_init_jobs():
     from app import scheduler
-    print("add initial jobs")
-    scheduler.add_job(**job1)
+    #print("add initial jobs")
+    #scheduler.add_job(**job1)
 
     # add third party account sync jobs
     from . import sync_manage

@@ -6,8 +6,12 @@ from random import randint
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from app import db, rd
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.sql import text
+from sqlalchemy import event
 from time import time
 import pickle
+from app.utils.logger import logfuncall
+from . import redis_keys as Keys
 
 user_follows = db.Table('user_follows',
     db.Column('follower_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
@@ -37,17 +41,19 @@ class User(UserMixin, db.Model):
 
     """ Relationships """
     # 动态
-    statuses = db.relationship('Status', backref='user', lazy='dynamic')
+    statuses = db.relationship('Status', backref='user', lazy='dynamic',
+            cascade='all, delete-orphan')
     status_replies = db.relationship('StatusReply', backref='user',
-        lazy='dynamic')
-    # 团体
+            lazy='dynamic', cascade='all, delete-orphan')
+    # 用户关注
     followed = db.relationship(
         'User', secondary=user_follows,
         primaryjoin=(user_follows.c.follower_id == id),
         secondaryjoin=(user_follows.c.followed_id == id),
         backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
+    # 团体
     group_memberships = db.relationship("GroupMembership",
-        back_populates="user", cascade='all, delete-orphan')
+        back_populates="user", cascade='all, delete-orphan', lazy='dynamic')
     # 添加直接访问方式, 可以直接通过u.groups访问到用户所在的团体
     groups = association_proxy("group_memberships", "group")
     # 二手
@@ -65,39 +71,102 @@ class User(UserMixin, db.Model):
     @staticmethod
     def verify_auth_token(token):
         """ Get current User from token """
-        token_key = "utoken:{}".format(token)
+        token_key = Keys.user_token.format(token)
         data = rd.get(token_key)
         if data != None:
             return User.from_id(data.decode())
         s = Serializer('auth' + current_app.config['SECRET_KEY'])
         try:
             data = s.loads(token)
-            rd.set(token_key, data['id'], ex=3600*24*7)
+            rd.set(token_key, data['id'], Keys.user_token_expire)
             return User.from_id(data['id'])
         except:
             return None
 
-    def cache_self():
-        user_key = "user:{}".format(id)
-        rd.set(user_key, pickle.dumps(user), ex=3600*24*3)
+    @logfuncall
+    def remove_cache():
+        user_key = Keys.user.format(id)
+        follower_num_key = Keys.user_follower_num.format(id)
+        followed_num_key = Keys.user_followed_num.format(id)
+        rd.set(user_key, pickle.dumps(user), Keys.user_expire)
+        rd.set(follower_num_key, self.followers.count(),
+                Keys.user_follower_num_expire)
+        rd.set(followed_num_key, self.followed.count(),
+                Keys.user_followed_num_expire)
 
     @staticmethod
+    @logfuncall
     def from_id(id: str):
-        user_key = "user:{}".format(id)
+        user_key = Keys.user.format(id)
         data = rd.get(user_key)
         if data != None:
             user = pickle.loads(data)
             user = db.session.merge(user, load=False)
+            rd.expire(user_key, Keys.user_expire)
             return user
         user = User.query.get(id)
         if user:
             data = pickle.dumps(user)
-            rd.set(user_key, data, ex=3600*24*3)
+            rd.set(user_key, data, Keys.user_expire)
         return user
 
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    @logfuncall
+    def _cache_followers(self):
+        sql = "select follower_id from user_follows where followed_id=:UID"
+        result = db.engine.execute(text(sql), UID=self.id)
+        follower_ids = [ row[0] for row in result]
+        follower_ids.append(-1)
+        key = Keys.user_followers.format(self.id)
+        """
+        As redis does not support empty set, so we can't decide
+        whether a empty list is cached.
+        So we need a placeholder element.
+        """
+        rd.sadd(key, *follower_ids)
+        rd.expire(key, Keys.user_followers_expire)
+
+    @logfuncall
+    def get_follower_num(self):
+        key = Keys.user_followers.format(self.id)
+        if not rd.exists(key):
+            self._cache_followers()
+        rd.expire(key, Keys.user_followers_expire)
+        return rd.scard(key) - 1 # remove placeholder element
+
+    @logfuncall
+    def get_followed_num(self):
+        key = Keys.user_followed_num.format(self.id)
+        data = rd.get(key)
+        if data != None:
+            rd.expire(key, Keys.user_followed_num_expire)
+            return data.decode()
+        followed = self.followed.count()
+        rd.set(key, followed, Keys.user_followed_num_expire)
+        return followed
+
+    @logfuncall
+    def get_group_enrolled_num(self):
+        key = Keys.user_group_enrolled_num.format(self.id)
+        data = rd.get(key)
+        if data != None:
+            rd.expire(key, Keys.user_group_enrolled_num_expire)
+            return data.decode()
+        group_enrolled = self.group_memberships.count()
+        rd.set(key, group_enrolled, Keys.user_group_enrolled_num_expire)
+        return group_enrolled
+
+    @logfuncall
+    def is_followed_by(self, user_id):
+        key = Keys.user_followers.format(self.id)
+        if not rd.exists(key):
+            self._cache_followers()
+        rd.expire(key, Keys.user_followers_expire)
+        return rd.sismember(key, user_id)
+
+    @logfuncall
     def to_json(self):
         imageServer = 'http://asserts.fondoger.cn/'
         json_user = {
@@ -108,10 +177,10 @@ class User(UserMixin, db.Model):
             'gender': self.gender,
             'member_since': self.member_since,
             'last_seen': self.last_seen,
-            'groups_enrolled': len(self.group_memberships),
-            'followed_by_me': g.user in self.followers,
-            'followed': self.followed.count(),
-            'followers': self.followers.count(),
+            'groups_enrolled': self.get_group_enrolled_num(),
+            'followed_by_me': self.is_followed_by(g.user.id),
+            'followed': self.get_followed_num(),
+            'followers': self.get_follower_num(),
         }
         return json_user
 
@@ -126,6 +195,19 @@ class User(UserMixin, db.Model):
     def password(self, password):
         self.password_hash = generate_password_hash(password)
 
+
+@event.listens_for(User, "after_update")
+@event.listens_for(User, "after_delete")
+def clear_cache(mapper, connection, target):
+    # TODO: We don't need to drop all cache when a single column changed
+    id = target.id
+    keys_to_remove = []
+    keys_to_remove.append(Keys.user.format(id))
+    keys_to_remove.append(Keys.user_token.format(id))
+    keys_to_remove.append(Keys.user_followers.format(id))
+    keys_to_remove.append(Keys.user_followed_num.format(id))
+    keys_to_remove.append(Keys.user_group_enrolled_num.format(id))
+    rd.delete(*keys_to_remove)
 
 def randomVerificationCode(context):
     return str(randint(100000, 999999))
@@ -160,3 +242,5 @@ class WaitingUser(db.Model):
         if minutes >= 15:
             return None
         return wu
+
+

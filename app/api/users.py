@@ -117,7 +117,6 @@ def change_user():
         else:
             return bad_request('gender must be 0(unknonwn), 1(male) or 2(female).')
             # g.user.gender = int(gender)
-    g.user.cache_self()
     db.session.add(g.user)
     db.session.commit()
     return jsonify(g.user.to_json()), 201, \

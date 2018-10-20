@@ -182,6 +182,7 @@ def get_status():
         return jsonify(ss)
 
     if type == 'timeline':
+        ### TODO: with entities might be useful here
         if g.user.is_anonymous:
             return jsonify([])
         sql2 = """
