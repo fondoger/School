@@ -6,6 +6,27 @@ from .. import db
 from ..models import *
 
 
+@api.route('/article', methods=['GET'])
+def get_article():
+    """
+    1. 通过id获取某篇文章
+    2. 通过official_account_id获取若干个文章
+    """
+    id = request.args.get('id', -1, type=int)
+    account_id = request.args.get('official_account_id', -1, type=int)
+    limit = request.args.get('limit', 10, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    if id != -1:
+        article = Article.query.get_or_404(id)
+        return jsonify(article.to_json())
+    if account_id != -1:
+        articles = Article.query.filter_by(official_account_id=account_id)
+        articles = articles.offset(offset).limit(limit)
+        articles = [ a.to_json() for a in articles ]
+        return jsonify(articles)
+    return bad_request('参数有误')
+
+
 @api.route('/official_account', methods=['GET'])
 def get_official_account():
     """
@@ -15,9 +36,7 @@ def get_official_account():
     id = request.args.get('id', -1, type=int)
     type = request.args.get('type', '')
     if id != -1:
-        account = OfficialAccount.query.get(id)
-        if account is None:
-            return not_found('找不到该订阅号')
+        account = OfficialAccount.query.get_or_404(id)
         return jsonify(account.to_json())
     if type == 'all':
         accounts = [a.to_json() for a in OfficialAccount.query]
@@ -28,9 +47,7 @@ def get_official_account():
 @login_required
 def create_official_account_subscription():
     id = request.json.get('id', -1)
-    official_account = OfficialAccount.query.get(id)
-    if official_account is None:
-        return not_found('找不到该订阅号')
+    official_account = OfficialAccount.query.get_or_404(id)
     if g.user in official_account.subscribers:
         return jsonify({'message': 'already subscribed'})
     official_account.subscribers.append(g.user)
@@ -42,9 +59,7 @@ def create_official_account_subscription():
 @login_required
 def delete_official_account_subscription():
     id = request.args.get('id', -1)
-    official_account = OfficialAccount.query.get(id)
-    if official_account is None:
-        return not_found('找不到该订阅号')
+    official_account = OfficialAccount.query.get_or_404(id)
     if g.user not in official_account.subscribers:
         return jsonify({'message': 'already unsubscribed'})
     official_account.subscribers.remove(g.user)

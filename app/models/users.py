@@ -9,7 +9,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.sql import text
 from sqlalchemy import event
 from time import time
-import pickle
+import _pickle as pickle
 from app.utils.logger import logfuncall
 from . import redis_keys as Keys
 
