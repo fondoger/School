@@ -68,7 +68,6 @@ class User(UserMixin, db.Model):
         token_key = "utoken:{}".format(token)
         data = rd.get(token_key)
         if data != None:
-            print("Hit at redis", token_key)
             return User.from_id(data.decode())
         s = Serializer('auth' + current_app.config['SECRET_KEY'])
         try:
@@ -78,13 +77,18 @@ class User(UserMixin, db.Model):
         except:
             return None
 
+    def cache_self():
+        user_key = "user:{}".format(id)
+        rd.set(user_key, pickle.dumps(user), ex=3600*24*3)
+
     @staticmethod
     def from_id(id: str):
         user_key = "user:{}".format(id)
         data = rd.get(user_key)
         if data != None:
-            print("Hit at redis", user_key)
-            return pickle.loads(data)
+            user = pickle.loads(data)
+            user = db.session.merge(user, load=False)
+            return user
         user = User.query.get(id)
         if user:
             data = pickle.dumps(user)

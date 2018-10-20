@@ -31,7 +31,9 @@ def get_user():
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 10, type=int)
     if id != -1:
-        user = User.query.get_or_404(id)
+        user = User.from_id(id)
+        if user == None:
+            return not_found("找不到该用户")
         return jsonify(user.to_json())
     if username != '':
         user = User.query.filter_by(username=username).first_or_404()
@@ -44,7 +46,6 @@ def get_user():
         return jsonify(users)
 
     return bad_request("参数有误")
-
 
 
 @api.route('/user', methods=['PATCH', 'PUT'])
@@ -116,7 +117,7 @@ def change_user():
         else:
             return bad_request('gender must be 0(unknonwn), 1(male) or 2(female).')
             # g.user.gender = int(gender)
-
+    g.user.cache_self()
     db.session.add(g.user)
     db.session.commit()
     return jsonify(g.user.to_json()), 201, \
@@ -128,7 +129,7 @@ def get_user_followers():
     id = request.args.get('id', -1, type=int)
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 10, type=int)
-    user = User.query.get(id)
+    user = User.from_id(id)
     if user is None:
         return not_found('找不到该用户')
     users = user.followers.offset(offset).limit(limit)
@@ -141,7 +142,7 @@ def get_user_followed():
     id = request.args.get('id', -1, type=int)
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 10, type=int)
-    user = User.query.get(id)
+    user = User.from_id(id)
     if user is None:
         return not_found('找不到该用户')
     users = user.followed.offset(offset).limit(limit)
@@ -154,7 +155,7 @@ def get_user_followed():
 @login_required
 def create_user_followed():
     id = request.json.get('id', -1)
-    user = User.query.get(id)
+    user = User.from_id(id)
     if user is None:
         return not_found('找不到该用户')
     if user == g.user:
@@ -171,7 +172,7 @@ def create_user_followed():
 @login_required
 def delete_user_followed():
     id = request.args.get('id', -1, type=int)
-    user = User.query.get(id)
+    user = User.from_id(id)
     if user is None:
         return not_found('找不到该用户')
     if user not in g.user.followed:
@@ -187,7 +188,7 @@ def get_user_groups():
     id = request.args.get('id', -1, type=int)
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 10, type=int)
-    user = User.query.get(id)
+    user = User.from_id(id)
     if user is None:
         return not_found('找不到该用户')
     groups = user.groups[offset:offset + limit]
@@ -231,7 +232,7 @@ def creat_waiting_user():
 
 
 def user_first_created(u):
-    developer = User.query.get(1)
+    developer = User.from_id(1)
     developer.followers.append(u)
     db.session.add(u)
     for a in OfficialAccount.query:
