@@ -169,6 +169,8 @@ class User(UserMixin, db.Model):
     @logfuncall
     def to_json(self):
         imageServer = 'http://asserts.fondoger.cn/'
+        followed_by_me = self.is_followed_by(g.user.id) if not \
+                g.user.is_anonymous else False
         json_user = {
             'id': self.id,
             'username': self.username,
@@ -178,7 +180,7 @@ class User(UserMixin, db.Model):
             'member_since': self.member_since,
             'last_seen': self.last_seen,
             'groups_enrolled': self.get_group_enrolled_num(),
-            'followed_by_me': self.is_followed_by(g.user.id),
+            'followed_by_me': followed_by_me,
             'followed': self.get_followed_num(),
             'followers': self.get_follower_num(),
         }
