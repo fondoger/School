@@ -1,6 +1,12 @@
-from flask import g
+from flask import g, current_app
 from datetime import datetime
-from .. import db
+from sqlalchemy import event, orm
+from sqlalchemy.sql import text
+from app import db, rd
+from app.utils.logger import logfuncall
+import _pickle as pickle
+from . import redis_keys as Keys, popularity_score as Score
+import json
 
 # many to many
 status_likes = db.Table('status_likes',
@@ -91,12 +97,67 @@ class Status(db.Model):
     liked_users = db.relationship('User', secondary=status_likes, lazy='dynamic',
         backref=db.backref('liked_status', lazy='dynamic'))
 
+    @property
+    def score(self):
+        # lazy load
+        if not hasattr(self, '__score'):
+            self.__score = Score.status(self)
+        return self.__score
+
+    @score.setter
+    def score(self, new_score):
+        self.__score = new_score
+
+    @staticmethod
+    @logfuncall
+    def from_id(id: str):
+        key = Keys.status.format(id)
+        data = rd.get(key)
+        if data != None:
+            status = pickle.loads(data)
+            status = db.session.merge(status, load=False)
+            rd.expire(status, Keys.status_expire)
+            return status
+        status = Status.query.get(id)
+        if status:
+            data = pickle.dumps(status)
+            rd.set(key, data, Keys.status_expire)
+        return status
+
+    @staticmethod
+    @logfuncall
+    def from_ids(ids):
+        """
+        result may not have same length of ids and
+        may not returned in original order
+        """
+        statuses = []
+        missed_ids = []
+        # get from redis cache
+        for index, id in enumerate(ids):
+            key = Keys.status.format(id)
+            data = rd.get(key)
+            if data != None:
+                status = pickle.loads(data)
+                status = db.session.merge(status, load=False)
+                statuses.append(status)
+            else:
+                missed_ids.append(id)
+        # get from mysql
+        missed = Status.query.filter(Status.id.in_(missed_ids)).all()
+        for s in missed:
+            statuses.append(s)
+            key = Keys.status.format(id)
+            data = pickle.dumps(status)
+            rd.set(key, data, Keys.status_expire)
+        return statuses
 
     @property
     def type(self):
         for k, v in Status.TYPES.items():
             if v == self.type_id:
                 return k
+
     @type.setter
     def type(self, type_name):
         idx = Status.TYPES.get(type_name, -1)
@@ -104,9 +165,35 @@ class Status(db.Model):
             raise Exception("No such type")
         self.type_id = idx
 
+    @logfuncall
+    def _cache_liked_users(self):
+        sql = "select user_id from status_likes where status_id=:SID"
+        result = db.engine.execute(text(sql), SID=self.id)
+        liked_user_ids = [ row[0] for row in result ]
+        liked_user_ids.append(-1)
+        key = Keys.status_liked_users.format(self.id)
+        rd.sadd(key, *liked_user_ids)
+        rd.expire(key, Keys.status_liked_users_expire)
+
+    @logfuncall
+    def is_liked_by(self, user_id):
+        key = Keys.status_liked_users.format(self.id)
+        if not rd.exists(key):
+            self._cache_liked_users()
+        rd.expire(key, Keys.status_liked_users_expire)
+        return rd.sismember(key, user_id)
+
     def to_json(self):
-        imageServer = 'http://asserts.fondoger.cn/'
-        json = {
+        key = Keys.status_json.format(self.id)
+        data = rd.get(key)
+        if data != None:
+            rd.expire(key, Keys.status_json_expire)
+            json_status = json.loads(data)
+            json_status['liked_by_me'] = self.is_liked_by(g.user.id) \
+                    if not g.user.is_anonymous else False
+            return json_status
+        image_server = current_app.config['IMAGE_SERVER']
+        json_status = {
             'id': self.id,
             'type': self.type,
             'title': self.title,
@@ -115,21 +202,33 @@ class Status(db.Model):
             'timestamp': self.timestamp,
             'replies': self.replies.count(),
             'likes': self.liked_users.count(),
-            'liked_by_me': hasattr(g, 'user') and g.user in self.liked_users,
-            'pics': [imageServer+p.url for p in self.pictures.order_by(StatusPicture.index)],
+            'liked_by_me': g.user in self.liked_users,
+            'pics': [image_server+p.url for p in self.pictures.order_by(StatusPicture.index)],
         }
         if self.type == "GROUP_POST":
-            _json = {
-                'group': self.group.to_json(),
-            }
-            json.update(_json)
+            _json_status = { 'group': self.group.to_json() }
+            json_status.update(_json_status)
         if self.type == "GROUP_STATUS":
-            _json = {
+            _json_status = {
                 'group': self.group.to_json(),
                 'group_user_title': self.group.get_user_title(self.user),
             }
-            json.update(_json)
-        return json
+            json_status.update(_json_status)
+        data = json.dumps(json_status, ensure_ascii=False)
+        rd.set(key, data, ex=Keys.status_json_expire)
+        return json_status
+
+
+@logfuncall
+@event.listens_for(Status, "after_update")
+@event.listens_for(Status, "after_delete")
+def clear_cache(mapper, connection, target):
+    id = target.id
+    keys_to_remove = []
+    keys_to_remove.append(Keys.status.format(id))
+    keys_to_remove.append(Keys.status_json.format(id))
+    keys_to_remove.append(Keys.status_liked_users.format(id))
+    rd.delete(*keys_to_remove)
 
 
 # many to many

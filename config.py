@@ -14,7 +14,7 @@ class Config:
     TRAP_HTTP_EXCEPTIONS = False
 
     ### For Flask-Redis
-    REDIS_URL = 'redis://@localhost:6379/0'
+    REDIS_URL = 'redis://localhost:6379/0'
 
     ### For APScheduler
     SCHEDULER_API_ENABLED = True

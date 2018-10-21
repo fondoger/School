@@ -3,9 +3,9 @@ from flask import request, g, jsonify, url_for
 from . import api
 from .utils import login_required, json_required
 from .errors import forbidden, unauthorized, bad_request, not_found
-from app import db, rand
+from app import db, rd
 from app.models import *
-
+import app.models.redis_keys as Keys
 
 
 @api.route('/timeline', methods['GET'])
@@ -16,12 +16,44 @@ def get_timeline():
     参数：
     limit: 可选,default=10
     offset: 可选,default=10
-
     """
+    limit = request.args.get('limit', 10, type=int)
+    offset = request.args.get('offset', 10, type=int)
+    key = Keys.user_timeline.format(g.user.id)
+    if rd.exists(key):
+        """element: type:id,  type=s|a"""
+        datas = rd.zrevrange(key, offset, offset+limit)
+        items = [ d.decode() for d in datas ]
+        status_ids = []
+        article_ids = []
+        for item in items:
+            if item[0] == 's':
+                status_ids.append(item[2:])
+            elif item[0] == 'a':
+                article_ids.append(item[2:])
+            else:
+                raise Exception("No such type")
+        # from_ids returns un ordered
+        statuses = Status.from_ids(status_ids)
+        articles = []
+        res_map = {}
+        for s in statuses:
+            res_map['s:'+s.id]  = s
+        for a in articles:
+            res_map['a:'+a.id] = a
+        res = [ res_map[t].to_json() for t in items if t in res_map ]
+        return jsonify(res)
+    return bad_request("User has no timeline currently")
 
-    # get 10 followed user's status
-    followed_ids = [u.id for u in g.user.followed]
-    ss = Status.query.filter(Status.user_id.in_(followed_ids))
-    ss = ss.order_by(Status.timestamp.desc())
-    ss = ss.offset()
+
+
+
+
+
+
+
+
+
+
+
 

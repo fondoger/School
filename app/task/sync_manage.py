@@ -2,6 +2,10 @@ import time
 import json
 from functools import reduce
 
+
+# TODO: rewrite this part with Redis queue
+# Consider using rq-scheduler ???
+
 # save job's last ran time
 # key: job_id, value: timestamp
 PREVIOUS_RUN_TIME = {}

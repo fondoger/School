@@ -83,17 +83,6 @@ class User(UserMixin, db.Model):
         except:
             return None
 
-    @logfuncall
-    def remove_cache():
-        user_key = Keys.user.format(id)
-        follower_num_key = Keys.user_follower_num.format(id)
-        followed_num_key = Keys.user_followed_num.format(id)
-        rd.set(user_key, pickle.dumps(user), Keys.user_expire)
-        rd.set(follower_num_key, self.followers.count(),
-                Keys.user_follower_num_expire)
-        rd.set(followed_num_key, self.followed.count(),
-                Keys.user_followed_num_expire)
-
     @staticmethod
     @logfuncall
     def from_id(id: str):
@@ -129,36 +118,6 @@ class User(UserMixin, db.Model):
         rd.expire(key, Keys.user_followers_expire)
 
     @logfuncall
-    def get_follower_num(self):
-        key = Keys.user_followers.format(self.id)
-        if not rd.exists(key):
-            self._cache_followers()
-        rd.expire(key, Keys.user_followers_expire)
-        return rd.scard(key) - 1 # remove placeholder element
-
-    @logfuncall
-    def get_followed_num(self):
-        key = Keys.user_followed_num.format(self.id)
-        data = rd.get(key)
-        if data != None:
-            rd.expire(key, Keys.user_followed_num_expire)
-            return data.decode()
-        followed = self.followed.count()
-        rd.set(key, followed, Keys.user_followed_num_expire)
-        return followed
-
-    @logfuncall
-    def get_group_enrolled_num(self):
-        key = Keys.user_group_enrolled_num.format(self.id)
-        data = rd.get(key)
-        if data != None:
-            rd.expire(key, Keys.user_group_enrolled_num_expire)
-            return data.decode()
-        group_enrolled = self.group_memberships.count()
-        rd.set(key, group_enrolled, Keys.user_group_enrolled_num_expire)
-        return group_enrolled
-
-    @logfuncall
     def is_followed_by(self, user_id):
         key = Keys.user_followers.format(self.id)
         if not rd.exists(key):
@@ -168,22 +127,30 @@ class User(UserMixin, db.Model):
 
     @logfuncall
     def to_json(self):
-        imageServer = 'http://asserts.fondoger.cn/'
         followed_by_me = self.is_followed_by(g.user.id) if not \
                 g.user.is_anonymous else False
+        key = Keys.user_json.format(self.id)
+        data = rd.get(key)
+        if data != None:
+            rd.expire(key, Keys.user_json_expire)
+            json_user = json.loads(data)
+            json_user['followed_by_me'] = followed_by_me
+            return json_user
+        image_server = current_app.config['IMAGE_SERVER']
         json_user = {
             'id': self.id,
             'username': self.username,
-            'avatar': imageServer+self.avatar,
+            'avatar': image_server+self.avatar,
             'self_intro': self.self_intro,
             'gender': self.gender,
             'member_since': self.member_since,
             'last_seen': self.last_seen,
-            'groups_enrolled': self.get_group_enrolled_num(),
+            'groups_enrolled': self.group_memberships.count(),
             'followed_by_me': followed_by_me,
-            'followed': self.get_followed_num(),
-            'followers': self.get_follower_num(),
+            'followed': self.followed.count(),
+            'followers': self.followers.count(),
         }
+        rd.set(key, json.dumps(json_user), ex=Keys.user_json_expire)
         return json_user
 
     def __repr__(self):
@@ -198,17 +165,18 @@ class User(UserMixin, db.Model):
         self.password_hash = generate_password_hash(password)
 
 
+@logfuncall
 @event.listens_for(User, "after_update")
 @event.listens_for(User, "after_delete")
 def clear_cache(mapper, connection, target):
     # TODO: We don't need to drop all cache when a single column changed
+    # User.last_seen changes should not trigger
     id = target.id
     keys_to_remove = []
     keys_to_remove.append(Keys.user.format(id))
     keys_to_remove.append(Keys.user_token.format(id))
+    keys_to_remove.append(Keys.user_json.format(id))
     keys_to_remove.append(Keys.user_followers.format(id))
-    keys_to_remove.append(Keys.user_followed_num.format(id))
-    keys_to_remove.append(Keys.user_group_enrolled_num.format(id))
     rd.delete(*keys_to_remove)
 
 def randomVerificationCode(context):
