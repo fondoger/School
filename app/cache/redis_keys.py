@@ -15,7 +15,7 @@ user_json_expire = 3600*24*7
 
 # Redis set of user ids
 user_followers = "user:{}:followers"
-user_followers_expire = 3600*24*3
+user_followers_expire = 3600*24*7
 
 #user_followed_num = "user:{}:followed_num"
 #user_followed_num_expire = 3600*24*3
@@ -59,6 +59,21 @@ status_json_expire = 3600*24*7
 # Redis set of user ids
 status_liked_users = "status:{}:liked_users"
 status_liked_users_expire = 3600*24*7
+
+
+"""
+Task Queue
+"""
+
+"""
+new_status:status_id
+delete_status:status_id
+status_liked:status_id
+status_unliked:status_id
+status_add_reply:status_id
+status_remove_reply:status_id
+"""
+status_events = "status_events"
 
 
 

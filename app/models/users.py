@@ -11,7 +11,7 @@ from sqlalchemy import event
 from time import time
 import _pickle as pickle
 from app.utils.logger import logfuncall
-from . import redis_keys as Keys
+import app.cache.redis_keys as Keys
 
 user_follows = db.Table('user_follows',
     db.Column('follower_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
@@ -83,60 +83,16 @@ class User(UserMixin, db.Model):
         except:
             return None
 
-    @staticmethod
-    @logfuncall
-    def from_id(id: str):
-        user_key = Keys.user.format(id)
-        data = rd.get(user_key)
-        if data != None:
-            user = pickle.loads(data)
-            user = db.session.merge(user, load=False)
-            rd.expire(user_key, Keys.user_expire)
-            return user
-        user = User.query.get(id)
-        if user:
-            data = pickle.dumps(user)
-            rd.set(user_key, data, Keys.user_expire)
-        return user
-
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
 
     @logfuncall
-    def _cache_followers(self):
-        sql = "select follower_id from user_follows where followed_id=:UID"
-        result = db.engine.execute(text(sql), UID=self.id)
-        follower_ids = [ row[0] for row in result]
-        follower_ids.append(-1)
-        key = Keys.user_followers.format(self.id)
-        """
-        As redis does not support empty set, so we can't decide
-        whether a empty list is cached.
-        So we need a placeholder element.
-        """
-        rd.sadd(key, *follower_ids)
-        rd.expire(key, Keys.user_followers_expire)
-
-    @logfuncall
-    def is_followed_by(self, user_id):
-        key = Keys.user_followers.format(self.id)
-        if not rd.exists(key):
-            self._cache_followers()
-        rd.expire(key, Keys.user_followers_expire)
-        return rd.sismember(key, user_id)
-
-    @logfuncall
-    def to_json(self):
-        followed_by_me = self.is_followed_by(g.user.id) if not \
-                g.user.is_anonymous else False
-        key = Keys.user_json.format(self.id)
-        data = rd.get(key)
-        if data != None:
-            rd.expire(key, Keys.user_json_expire)
-            json_user = json.loads(data)
-            json_user['followed_by_me'] = followed_by_me
-            return json_user
+    def to_json(self, verify=False):
+        if not verify:
+            print("Deprecated: please use Cache.get_user_json()")
         image_server = current_app.config['IMAGE_SERVER']
+        # NOTE: keep json_user without nested dict in order to
+        # perfectly store it to redis hast data type
         json_user = {
             'id': self.id,
             'username': self.username,
@@ -146,11 +102,10 @@ class User(UserMixin, db.Model):
             'member_since': self.member_since,
             'last_seen': self.last_seen,
             'groups_enrolled': self.group_memberships.count(),
-            'followed_by_me': followed_by_me,
+            'followed_by_me': g.user in self.followers,
             'followed': self.followed.count(),
             'followers': self.followers.count(),
         }
-        rd.set(key, json.dumps(json_user), ex=Keys.user_json_expire)
         return json_user
 
     def __repr__(self):

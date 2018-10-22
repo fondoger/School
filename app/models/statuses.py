@@ -5,7 +5,8 @@ from sqlalchemy.sql import text
 from app import db, rd
 from app.utils.logger import logfuncall
 import _pickle as pickle
-from . import redis_keys as Keys, popularity_score as Score
+from . import popularity_score as Score
+import app.cache.redis_keys as Keys
 import json
 
 # many to many
