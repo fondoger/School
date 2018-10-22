@@ -11,7 +11,6 @@ from sqlalchemy import event
 from time import time
 import _pickle as pickle
 from app.utils.logger import logfuncall
-import app.cache.redis_keys as Keys
 
 user_follows = db.Table('user_follows',
     db.Column('follower_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
@@ -70,16 +69,18 @@ class User(UserMixin, db.Model):
 
     @staticmethod
     def verify_auth_token(token):
+        import app.cache as Cache
+        import app.cache.redis_keys as Keys
         """ Get current User from token """
         token_key = Keys.user_token.format(token)
         data = rd.get(token_key)
         if data != None:
-            return User.from_id(data.decode())
+            return Cache.get_user(data.decode())
         s = Serializer('auth' + current_app.config['SECRET_KEY'])
         try:
             data = s.loads(token)
             rd.set(token_key, data['id'], Keys.user_token_expire)
-            return User.from_id(data['id'])
+            return Cache.get_user(data['id'])
         except:
             return None
 
@@ -87,8 +88,8 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
     @logfuncall
-    def to_json(self, verify=False):
-        if not verify:
+    def to_json(self, cache=False):
+        if not cache and current_app.config['DEBUG']:
             print("Deprecated: please use Cache.get_user_json()")
         image_server = current_app.config['IMAGE_SERVER']
         # NOTE: keep json_user without nested dict in order to
@@ -102,10 +103,11 @@ class User(UserMixin, db.Model):
             'member_since': self.member_since,
             'last_seen': self.last_seen,
             'groups_enrolled': self.group_memberships.count(),
-            'followed_by_me': g.user in self.followers,
             'followed': self.followed.count(),
             'followers': self.followers.count(),
         }
+        # `followed_by_me` is g.user relevant, which
+        # is set in app.cache.users
         return json_user
 
     def __repr__(self):
@@ -126,6 +128,8 @@ class User(UserMixin, db.Model):
 def clear_cache(mapper, connection, target):
     # TODO: We don't need to drop all cache when a single column changed
     # User.last_seen changes should not trigger
+    pass
+    """
     id = target.id
     keys_to_remove = []
     keys_to_remove.append(Keys.user.format(id))
@@ -133,6 +137,7 @@ def clear_cache(mapper, connection, target):
     keys_to_remove.append(Keys.user_json.format(id))
     keys_to_remove.append(Keys.user_followers.format(id))
     rd.delete(*keys_to_remove)
+    """
 
 def randomVerificationCode(context):
     return str(randint(100000, 999999))

@@ -4,16 +4,21 @@ Usage: import app.cache as Cache
 from flask import g
 from app import db, rd
 from typing import List, Union
+from sqlalchemy.sql import text
 import json
 import _pickle as pickle
-import .redis_keys as Keys
+from . import redis_keys as Keys
+from app.utils.logger import logfuncall
 
 IntLike = Union[str, int]
 
-def get_user(id: IntLike) -> User:
+
+# TODO: add get_user_or_404()
+
+def get_user(id: IntLike) -> 'User':
     """ None is returned if user can't found """
     key = Keys.user.format(id)
-    data = rd.get(keys)
+    data = rd.get(key)
     if data != None:
         user = pickle.loads(data)
         user = db.session.merge(user, load=False)
@@ -25,11 +30,11 @@ def get_user(id: IntLike) -> User:
         rd.set(key, data, Keys.user_expire)
     return user
 
-def _cache_user_followers(id: IntLike):
+def _cache_followers(id: IntLike):
     key = Keys.user_followers.format(id)
     sql = "select follower_id from user_follows where followed_id=:UID"
     result = db.engine.execute(text(sql), UID=id)
-    follower_ids = [row[0] for row in result ]
+    follower_ids = [ row[0] for row in result ]
     """
     As redis does not support empty set, but we
     still need to know whether an empty set is cached,
@@ -39,19 +44,31 @@ def _cache_user_followers(id: IntLike):
     rd.sadd(key, *follower_ids)
     rd.expire(key, Keys.user_followers_expire)
 
+def _cache_user_posts(id: IntLike):
+    key = Keys.user_statuses.format(id)
+    sql = "select id from statuses where user_id=:UID order by id"
+    result = db.engine.execute(text(sql), UID=id)
+    statuses_ids = [ row[0] for row in result ]
+    statuses_ids.append(-1)
+    rd.sadd(key, *statuses_ids)
+    rd.expire(key, Keys.user_statuses_expire)
+
 def is_user_followed_by(id: IntLike, other_id: IntLike) -> bool:
     key = Keys.user_followers.format(id)
     if not rd.exists(key):
-        cache_followers()
+        _cache_followers(id)
     rd.expire(key, Keys.user_followers_expire)
     return rd.sismember(key, other_id)
 
+
+@logfuncall
 def get_user_json(id: IntLike) -> dict:
     """
     None is returned in case of user not exists
     """
     key = Keys.user_json.format(id)
     data = rd.hgetall(key)
+    json_user = None
     # {} is returned if key not exists
     # NOTE: don't use `if data != None`,
     if data:
@@ -59,27 +76,28 @@ def get_user_json(id: IntLike) -> dict:
         # data is a dict with bytes key and bytes value
         json_user = {
             'id': int(data[b'id']),
-            'username': data[b'username'].decode(), # don't use str(data[b'username'])
+            'username': data[b'username'].decode(),
             'avatar': data[b'avatar'].decode(),
             'self_intro': data[b'self_intro'].decode(),
             'gender': int(data[b'gender']),
             'member_since': data[b'member_since'].decode(),
             'last_seen': data[b'member_since'].decode(),
             'groups_enrolled': int(data[b'groups_enrolled']),
-            'followed_by_me': is_user_followed_by(id, g.user.id) if not \
-                    g.user.is_anonymous else False,
             'followed': int(data[b'followed']),
             'followers': int(data[b'followers']),
         }
-        rd.expire(key, Keys.user_json_expire)
-        return json_user
-    user = get_user(id)
-    if user != None
-        json_user = user.to_json(verify=True)
+    else:
+        user = get_user(id)
+        if user == None:
+            return None
+        json_user = user.to_json(cache=True)
         rd.hmset(key, json_user)
-        rd.expire(key, Keys.user_json_expire)
-        return json_user
-    return None
+    json_user['followed_by_me'] = is_user_followed_by(id,
+            g.user.id) if not g.user.is_anonymous else False
+    rd.expire(key, Keys.user_json_expire)
+    return json_user
 
 
+
+from app.models import *
 

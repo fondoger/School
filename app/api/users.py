@@ -6,9 +6,10 @@ from .utils import login_required, json_required
 from .aliyun_mail import AliyunEmail
 from .authentication import auth
 from .errors import bad_request, unauthorized, forbidden, not_found, internal_error
-from .statuses import Status
-from .. import db
-from ..models import WaitingUser, User, OfficialAccount
+from app import db
+from app.models import *
+import app.cache as Cache
+import app.cache.redis_keys as Keys
 from sqlalchemy import func
 
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
@@ -31,7 +32,7 @@ def get_user():
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 10, type=int)
     if id != -1:
-        user = User.from_id(id)
+        user = Cache.get_user(id)
         if user == None:
             return not_found("找不到该用户")
         return jsonify(user.to_json())
@@ -128,7 +129,7 @@ def get_user_followers():
     id = request.args.get('id', -1, type=int)
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 10, type=int)
-    user = User.from_id(id)
+    user = Cache.get_user(id)
     if user is None:
         return not_found('找不到该用户')
     users = user.followers.offset(offset).limit(limit)
@@ -141,7 +142,7 @@ def get_user_followed():
     id = request.args.get('id', -1, type=int)
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 10, type=int)
-    user = User.from_id(id)
+    user = Cache.get_user(id)
     if user is None:
         return not_found('找不到该用户')
     users = user.followed.offset(offset).limit(limit)
@@ -154,7 +155,7 @@ def get_user_followed():
 @login_required
 def create_user_followed():
     id = request.json.get('id', -1)
-    user = User.from_id(id)
+    user = Cache.get_user(id)
     if user is None:
         return not_found('找不到该用户')
     if user == g.user:
@@ -171,7 +172,7 @@ def create_user_followed():
 @login_required
 def delete_user_followed():
     id = request.args.get('id', -1, type=int)
-    user = User.from_id(id)
+    user = Cache.get_user(id)
     if user is None:
         return not_found('找不到该用户')
     if user not in g.user.followed:
@@ -187,7 +188,7 @@ def get_user_groups():
     id = request.args.get('id', -1, type=int)
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 10, type=int)
-    user = User.from_id(id)
+    user = Cache.get_user(id)
     if user is None:
         return not_found('找不到该用户')
     groups = user.groups[offset:offset + limit]
@@ -231,7 +232,7 @@ def creat_waiting_user():
 
 
 def user_first_created(u):
-    developer = User.from_id(1)
+    developer = Cache.get_user(1)
     developer.followers.append(u)
     db.session.add(u)
     for a in OfficialAccount.query:

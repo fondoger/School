@@ -1,3 +1,7 @@
+"""
+Ugly solution but simple.
+"""
+
 
 """
 User
@@ -16,6 +20,10 @@ user_json_expire = 3600*24*7
 # Redis set of user ids
 user_followers = "user:{}:followers"
 user_followers_expire = 3600*24*7
+
+# Redis list of statuse's ids
+#user_statuses = "user:{}:statuses"
+#user_statuses_expire = 3600*24*7
 
 #user_followed_num = "user:{}:followed_num"
 #user_followed_num_expire = 3600*24*3
@@ -59,6 +67,19 @@ status_json_expire = 3600*24*7
 # Redis set of user ids
 status_liked_users = "status:{}:liked_users"
 status_liked_users_expire = 3600*24*7
+
+
+"""
+Group
+"""
+group = "group:{}"
+group_expire = 3600*24*7
+
+group_json = "group:{}"
+group_json_expire = 3600*24*7
+
+group_user_title = "group:{}:user:{}:title"
+group_user_title_expire = 3600*24*7
 
 
 """

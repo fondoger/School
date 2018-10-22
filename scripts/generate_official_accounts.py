@@ -4,9 +4,8 @@ import json
 import os
 
 
-def generate_official_accounts():
-    print('generating official accounts...')
-    path = os.path.join(os.path.dirname(__file__), 'sync_buaa_art_news_accounts.json')
+def _func(path):
+    print(path)
     with open(path) as f:
         accounts = json.load(f)
         for account in accounts:
@@ -22,3 +21,15 @@ def generate_official_accounts():
             print("create official account %s" % account['accountname'])
         db.session.commit()
         print("generate offical account success")
+
+def generate_official_accounts():
+    print('generating official accounts...')
+    paths = [
+        'scripts/sync_buaa_art_news_accounts.json',
+        'scripts/sync_buaa_news_accounts.json',
+        'scripts/sync_weibo_accounts.json',
+        'scripts/sync_weixin_accounts.json',
+    ]
+    for p in paths:
+        _func(p)
+

@@ -6,8 +6,8 @@ from app import db, rd
 from app.utils.logger import logfuncall
 import _pickle as pickle
 from . import popularity_score as Score
-import app.cache.redis_keys as Keys
 import json
+import app.cache as Cache
 
 # many to many
 status_likes = db.Table('status_likes',
@@ -83,7 +83,7 @@ class Status(db.Model):
     type_id = db.Column(db.Integer, default=TYPES['USER_STATUS'],
         nullable=False)
 
-    # Specific
+    # Optional
     title = db.Column(db.String(32))
     group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))
 
@@ -109,50 +109,6 @@ class Status(db.Model):
     def score(self, new_score):
         self.__score = new_score
 
-    @staticmethod
-    @logfuncall
-    def from_id(id: str):
-        key = Keys.status.format(id)
-        data = rd.get(key)
-        if data != None:
-            status = pickle.loads(data)
-            status = db.session.merge(status, load=False)
-            rd.expire(status, Keys.status_expire)
-            return status
-        status = Status.query.get(id)
-        if status:
-            data = pickle.dumps(status)
-            rd.set(key, data, Keys.status_expire)
-        return status
-
-    @staticmethod
-    @logfuncall
-    def from_ids(ids):
-        """
-        result may not have same length of ids and
-        may not returned in original order
-        """
-        statuses = []
-        missed_ids = []
-        # get from redis cache
-        for index, id in enumerate(ids):
-            key = Keys.status.format(id)
-            data = rd.get(key)
-            if data != None:
-                status = pickle.loads(data)
-                status = db.session.merge(status, load=False)
-                statuses.append(status)
-            else:
-                missed_ids.append(id)
-        # get from mysql
-        missed = Status.query.filter(Status.id.in_(missed_ids)).all()
-        for s in missed:
-            statuses.append(s)
-            key = Keys.status.format(id)
-            data = pickle.dumps(status)
-            rd.set(key, data, Keys.status_expire)
-        return statuses
-
     @property
     def type(self):
         for k, v in Status.TYPES.items():
@@ -166,57 +122,38 @@ class Status(db.Model):
             raise Exception("No such type")
         self.type_id = idx
 
-    @logfuncall
-    def _cache_liked_users(self):
-        sql = "select user_id from status_likes where status_id=:SID"
-        result = db.engine.execute(text(sql), SID=self.id)
-        liked_user_ids = [ row[0] for row in result ]
-        liked_user_ids.append(-1)
-        key = Keys.status_liked_users.format(self.id)
-        rd.sadd(key, *liked_user_ids)
-        rd.expire(key, Keys.status_liked_users_expire)
-
-    @logfuncall
-    def is_liked_by(self, user_id):
-        key = Keys.status_liked_users.format(self.id)
-        if not rd.exists(key):
-            self._cache_liked_users()
-        rd.expire(key, Keys.status_liked_users_expire)
-        return rd.sismember(key, user_id)
-
-    def to_json(self):
-        key = Keys.status_json.format(self.id)
-        data = rd.get(key)
-        if data != None:
-            rd.expire(key, Keys.status_json_expire)
-            json_status = json.loads(data)
-            json_status['liked_by_me'] = self.is_liked_by(g.user.id) \
-                    if not g.user.is_anonymous else False
-            return json_status
+    def to_json(self, cache=False):
+        if not cache and current_app.config['DEBUG']:
+            print("Deprecated: use Cache.get_status_json()")
         image_server = current_app.config['IMAGE_SERVER']
         json_status = {
             'id': self.id,
             'type': self.type,
             'title': self.title,
             'text': self.text,
-            'user': self.user.to_json(),
             'timestamp': self.timestamp,
             'replies': self.replies.count(),
             'likes': self.liked_users.count(),
-            'liked_by_me': g.user in self.liked_users,
             'pics': [image_server+p.url for p in self.pictures.order_by(StatusPicture.index)],
         }
-        if self.type == "GROUP_POST":
-            _json_status = { 'group': self.group.to_json() }
-            json_status.update(_json_status)
-        if self.type == "GROUP_STATUS":
-            _json_status = {
-                'group': self.group.to_json(),
-                'group_user_title': self.group.get_user_title(self.user),
-            }
-            json_status.update(_json_status)
-        data = json.dumps(json_status, ensure_ascii=False)
-        rd.set(key, data, ex=Keys.status_json_expire)
+        if cache:
+            json_status['group_id'] = self.group_id
+            json_status['user_id'] = self.user_id
+        else:
+            json_status['user'] = Cache.get_user_json(self.user_id)
+            json_status['liked_by_me'] = Cache.is_status_liked_by(self.id, g.user.id) \
+                    if not g.user.is_anonymous else False
+            if self.type == 'GROUP_STATUS' or \
+                    self.type == 'GROUP_POST':
+                print("TODO: using Cache.get_group")
+                json_status['group'] = self.group.to_json()
+            if self.type == 'GROUP_POST':
+                print("TODO: using Cache.get_group_user_title")
+                json_status['group_user_title'] = self.group.get_user_title(self.user_id)
+
+
+        # NOTE: `liked_by_me` and `group_user_title` is
+        # g.user relevant, which are set in app.cache.statuses
         return json_status
 
 
@@ -224,12 +161,13 @@ class Status(db.Model):
 @event.listens_for(Status, "after_update")
 @event.listens_for(Status, "after_delete")
 def clear_cache(mapper, connection, target):
-    id = target.id
-    keys_to_remove = []
-    keys_to_remove.append(Keys.status.format(id))
-    keys_to_remove.append(Keys.status_json.format(id))
-    keys_to_remove.append(Keys.status_liked_users.format(id))
-    rd.delete(*keys_to_remove)
+    pass
+    #id = target.id
+    #keys_to_remove = []
+    #keys_to_remove.append(Keys.status.format(id))
+    #keys_to_remove.append(Keys.status_json.format(id))
+    #keys_to_remove.append(Keys.status_liked_users.format(id))
+    #rd.delete(*keys_to_remove)
 
 
 # many to many

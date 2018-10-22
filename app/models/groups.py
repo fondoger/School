@@ -102,11 +102,11 @@ class Group(db.Model):
                 return m.user
         raise Exception('Group %s has no onwer' % self.groupname)
 
-    def get_user_title(self, user):
+    def get_user_title(self, user_id):
         # todo: 该函数可以优化, 应该能直接得到关系
         # eg: group_memberships.get(group=self, user_id=user)
         for m in self.group_memberships:
-            if m.user == user:
+            if m.user_id == user_id:
                 return m.title
         return ''
 

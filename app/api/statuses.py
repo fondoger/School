@@ -6,6 +6,7 @@ from .errors import forbidden, unauthorized, bad_request, not_found
 from app import db, rank
 from app.models import *
 from sqlalchemy.sql import text
+import app.cache as Cache
 
 TOPICREGEX = re.compile(r"#([\s\S]+?)#")
 
@@ -141,11 +142,10 @@ def get_status():
     limit = request.args.get('limit', 10, type=int)
 
     if id != -1:
-        s = Status.query.get_or_404(id)
-        return jsonify(s.to_json())
+        return jsonify(Cache.get_status_json(id))
 
     if type == 'user':
-        u = User.query.get(user_id)
+        u = Cache.get_user(user_id)
         if u is None:
             return not_found('找不到该用户')
         ss = Status.query.filter_by(user=u)

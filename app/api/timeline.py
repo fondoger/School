@@ -5,7 +5,7 @@ from .utils import login_required, json_required
 from .errors import forbidden, unauthorized, bad_request, not_found
 from app import db, rd
 from app.models import *
-import app.models.redis_keys as Keys
+import app.cache.redis_keys as Keys
 
 
 @api.route('/timeline', methods['GET'])
@@ -33,8 +33,7 @@ def get_timeline():
                 article_ids.append(item[2:])
             else:
                 raise Exception("No such type")
-        # from_ids returns un ordered
-        statuses = Status.from_ids(status_ids)
+        statuses = Cache.get_users(status_ids)
         articles = []
         res_map = {}
         for s in statuses:
