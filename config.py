@@ -15,6 +15,8 @@ class Config:
 
     ### For Flask-Redis
     REDIS_URL = 'redis://localhost:6379/0'
+    ### For Flask-RQ2
+    RQ_REDIS_URL = REDIS_URL
 
     ### For APScheduler
     SCHEDULER_API_ENABLED = True

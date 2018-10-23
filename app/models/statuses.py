@@ -7,7 +7,6 @@ from app.utils.logger import logfuncall
 import _pickle as pickle
 from . import popularity_score as Score
 import json
-import app.cache as Cache
 
 # many to many
 status_likes = db.Table('status_likes',
@@ -126,6 +125,8 @@ class Status(db.Model):
         if not cache and current_app.config['DEBUG']:
             print("Deprecated: use Cache.get_status_json()")
         image_server = current_app.config['IMAGE_SERVER']
+        pictures = [ image_server + p.url for p in
+                self.pictures.order_by(StatusPicture.index) ]
         json_status = {
             'id': self.id,
             'type': self.type,
@@ -134,13 +135,15 @@ class Status(db.Model):
             'timestamp': self.timestamp,
             'replies': self.replies.count(),
             'likes': self.liked_users.count(),
-            'pics': [image_server+p.url for p in self.pictures.order_by(StatusPicture.index)],
         }
         if cache:
             json_status['group_id'] = self.group_id
             json_status['user_id'] = self.user_id
+            json_status['pics_json'] = json.dumps(pictures, ensure_ascii=False)
         else:
+            import app.cache as Cache
             json_status['user'] = Cache.get_user_json(self.user_id)
+            json_status['pics'] = pictures
             json_status['liked_by_me'] = Cache.is_status_liked_by(self.id, g.user.id) \
                     if not g.user.is_anonymous else False
             if self.type == 'GROUP_STATUS' or \
@@ -150,8 +153,6 @@ class Status(db.Model):
             if self.type == 'GROUP_POST':
                 print("TODO: using Cache.get_group_user_title")
                 json_status['group_user_title'] = self.group.get_user_title(self.user_id)
-
-
         # NOTE: `liked_by_me` and `group_user_title` is
         # g.user relevant, which are set in app.cache.statuses
         return json_status
@@ -159,15 +160,32 @@ class Status(db.Model):
 
 @logfuncall
 @event.listens_for(Status, "after_update")
-@event.listens_for(Status, "after_delete")
 def clear_cache(mapper, connection, target):
-    pass
-    #id = target.id
-    #keys_to_remove = []
-    #keys_to_remove.append(Keys.status.format(id))
-    #keys_to_remove.append(Keys.status_json.format(id))
-    #keys_to_remove.append(Keys.status_liked_users.format(id))
-    #rd.delete(*keys_to_remove)
+    # TODO: add dirty bit check
+    import app.cache.redis_keys as Keys
+    status_id = target.id
+    keys_to_remove = [
+        Keys.status.format(status_id),
+        Keys.status_json.format(status_id),
+        Keys.status_liked_users.format(status_id),
+    ]
+    rd.delete(*keys_to_remove)
+    rd.lpush(Keys.timeline_events_queue,
+             Keys.status_updated.format(status_id))
+
+@logfuncall
+@event.listens_for(Status, "after_delete")
+def status_deleted(mapper, connection, target):
+    import app.cache.redis_keys as Keys
+    status_id = target.id
+    keys_to_remove = [
+        Keys.status.format(status_id),
+        Keys.status_json.format(status_id),
+        Keys.status_liked_users.format(status_id),
+    ]
+    rd.delete(*keys_to_remove)
+    rd.lpush(Keys.timeline_events_queue,
+             Keys.status_deleted.format(status_id))
 
 
 # many to many

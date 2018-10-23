@@ -9,13 +9,14 @@ import json
 import _pickle as pickle
 from . import redis_keys as Keys
 from app.utils.logger import logfuncall
+from app.models import *
 
 IntLike = Union[str, int]
 
 
 # TODO: add get_user_or_404()
 
-def get_user(id: IntLike) -> 'User':
+def get_user(id: IntLike):
     """ None is returned if user can't found """
     key = Keys.user.format(id)
     data = rd.get(key)
@@ -38,11 +39,22 @@ def _cache_followers(id: IntLike):
     """
     As redis does not support empty set, but we
     still need to know whether an empty set is cached,
-    so we need a placeholder element
+    so we need a placeholder element(use self's id is good)
     """
-    follower_ids.append(-1)
+    follower_ids.append(id)
     rd.sadd(key, *follower_ids)
     rd.expire(key, Keys.user_followers_expire)
+
+def get_follower_ids(id: IntLike):
+    key = Keys.user_followers.format(id)
+    # returns an empty set if key not exists
+    ids = rd.smembers(key)
+    if not ids:
+        _cache_followers(id)
+        rd.smembers(key)
+    rd.expire(key, Keys.user_followers_expire)
+    return list(ids)
+
 
 def _cache_user_posts(id: IntLike):
     key = Keys.user_statuses.format(id)
@@ -99,5 +111,4 @@ def get_user_json(id: IntLike) -> dict:
 
 
 
-from app.models import *
 

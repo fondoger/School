@@ -8,7 +8,7 @@ from app.models import *
 import app.cache.redis_keys as Keys
 
 
-@api.route('/timeline', methods['GET'])
+@api.route('/timeline', methods=['GET'])
 @login_required
 def get_timeline():
     """

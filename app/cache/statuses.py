@@ -10,6 +10,7 @@ import _pickle as pickle
 from .users import get_user_json
 from . import redis_keys as Keys
 from app.utils.logger import logfuncall
+from app.models import User, Status
 
 IntLike = Union[int, str]
 
@@ -92,29 +93,27 @@ def get_status_json(id: IntLike) -> dict:
             'timestamp': data[b'timestamp'].decode(),
             'replies': int(data[b'replies']),
             'likes': int(data[b'likes']),
-            'pics': json.loads(data[b'pics_json'].decode()),
             'user_id': data[b'user_id'].decode(),
             'group_id': data[b'group_id'].decode(),
+            'pics_json': data[b'pics_json'].decode()
         }
     else:
         status = get_status(id)
         if status == None:
             return None
         result = status.to_json(cache=True)
-        result['pics_json'] = json.dumps(result['pics'],
-                ensure_ascii=False)
         rd.hmset(key, result)
-
+    result['pics'] = json.loads(result['pics_json'])
     result['user'] = get_user_json(result['user_id'])
     result['liked_by_me'] = is_status_liked_by(id, g.user.id) if \
             not g.user.is_anonymous else False
     if result['type'] == 'GROUP_STATUS' or \
             result['type'] == 'GROUP_POST':
         print("Using Cache.get_group instead of Group.query")
-        group = Group.query.get(result['group_id'])
+        group = Group.query.get(['group_id'])
         result['group'] = group.to_json()
     if result['type'] == 'GROUP_STATUS':
-        result['group_user_title'] = 'Title(TODO)'
+        result['group_user_title'] = 'GROUP_TITLE_IN_CACHE'
     # remove useless keys
     result.pop('pics_json', None)
     result.pop('user_id', None)
@@ -124,7 +123,6 @@ def get_status_json(id: IntLike) -> dict:
 
 
 
-from app.models import *
 
 
 

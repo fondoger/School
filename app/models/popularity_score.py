@@ -22,7 +22,7 @@ def status(instance):
     ## 这样就能保证昨天晚上的热门内容早上能够持续
     """
     base_score = int(instance.timestamp.timestamp())
-    strlen_score = 2 * strlen(instance.text) * 60
+    strlen_score = 2 * len(instance.text) * 60
     # requires a sql query
     # TODO: read from redis first
     images = instance.pictures.count()

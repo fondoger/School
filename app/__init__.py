@@ -50,6 +50,11 @@ def create_app(config_name):
         atexit.register(lambda: scheduler.shutdown())
         print("Scheduler started...")
 
+    # start timeline task
+    from app.task import timeline_task
+    timeline_task.init_app(app)
+    timeline_task.start()
+
     # for calculate rank every day
     if not app.debug:
         rank.init_app(app)

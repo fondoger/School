@@ -53,6 +53,9 @@ type: s(status) or a(rticle), 1 character is faster
 user_timeline = "user:{}:timeline"
 user_timeline_expire = 3600*24*10
 
+# this is for elements in user_timeline, not redis key
+timeline_status = "s:{}"
+
 
 
 """
@@ -87,14 +90,16 @@ Task Queue
 """
 
 """
-new_status:status_id
-delete_status:status_id
-status_liked:status_id
-status_unliked:status_id
-status_add_reply:status_id
-status_remove_reply:status_id
+status_updated:status_id
+status_deleted:status_id
 """
-status_events = "status_events"
+# Redis List
+timeline_events_queue = "timeline_events"
+
+status_updated = "status_updated:{}"
+status_updated_prefix = "status_updated"
+status_deleted = "status_deleted:{}"
+status_deleted_prefix = "status_deleted"
 
 
 
