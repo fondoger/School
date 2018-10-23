@@ -24,9 +24,6 @@ def _handle(task_name):
         # how to make sure user_followers are in
         follower_ids = Cache.get_follower_ids(user_id)
         timeline_item = Keys.timeline_status_item.format(status_id)
-        print("\n")
-        print("Follower_ids:", follower_ids)
-        print("\n")
         for follower_id in follower_ids:
             key = Keys.user_timeline.format(follower_id)
             # TODO: uncomment this

@@ -103,6 +103,10 @@ status_updated = "status_updated:{}"
 status_updated_prefix = "status_updated"
 status_deleted = "status_deleted:{}"
 status_deleted_prefix = "status_deleted"
+# A long time no-logged-in user comes back
+# Insert this to right of the queue for priority
+user_returned = "user_returned:{}"
+user_returned_prefix = "user_returned"
 
 
 

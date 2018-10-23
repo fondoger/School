@@ -89,8 +89,6 @@ class User(UserMixin, db.Model):
 
     @logfuncall
     def to_json(self, cache=False):
-        if not cache and current_app.config['DEBUG']:
-            print("Deprecated: please use Cache.get_user_json()")
         image_server = current_app.config['IMAGE_SERVER']
         # NOTE: keep json_user without nested dict in order to
         # perfectly store it to redis hast data type
@@ -106,6 +104,10 @@ class User(UserMixin, db.Model):
             'followed': self.followed.count(),
             'followers': self.followers.count(),
         }
+        if not cache:
+            t = Cache.is_user_followed_by(self.id, g.user.id) if\
+                    not g.user.is_anonymous else False
+            json_user['followed_by_me'] = t
         # `followed_by_me` is g.user relevant, which
         # is set in app.cache.users
         return json_user
@@ -121,23 +123,20 @@ class User(UserMixin, db.Model):
     def password(self, password):
         self.password_hash = generate_password_hash(password)
 
-
 @logfuncall
 @event.listens_for(User, "after_update")
 @event.listens_for(User, "after_delete")
 def clear_cache(mapper, connection, target):
     # TODO: We don't need to drop all cache when a single column changed
-    # User.last_seen changes should not trigger
-    pass
-    """
+    # Simply delete all
     id = target.id
-    keys_to_remove = []
-    keys_to_remove.append(Keys.user.format(id))
-    keys_to_remove.append(Keys.user_token.format(id))
-    keys_to_remove.append(Keys.user_json.format(id))
-    keys_to_remove.append(Keys.user_followers.format(id))
+    keys_to_remove = [
+        Keys.user.format(id),
+        Keys.user_token.format(id),
+        Keys.user_json.format(id),
+        Keys.user_followers.format(id),
+    ]
     rd.delete(*keys_to_remove)
-    """
 
 def randomVerificationCode(context):
     return str(randint(100000, 999999))

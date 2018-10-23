@@ -43,8 +43,8 @@ def create_app(config_name):
     Read: https://stackoverflow.com/questions/16053364
     """
     if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-		# prevents scheduler start twice (only in debug mode)
-		# https://stackoverflow.com/questions/14874782
+	# prevents scheduler start twice (only in debug mode)
+	# https://stackoverflow.com/questions/14874782
         scheduler.start()
         add_init_jobs()
         atexit.register(lambda: scheduler.shutdown())
@@ -58,7 +58,6 @@ def create_app(config_name):
     # for calculate rank every day
     if not app.debug:
         rank.init_app(app)
-
 
     # Register Blueprints
     from .api import api as api_blueprint

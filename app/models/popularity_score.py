@@ -7,6 +7,7 @@ for statuses、articles and posts in order to
 provide timeline and hot rank
 """
 
+
 def status(instance):
     """
     * 初始score为用户的posix timestamp
@@ -41,7 +42,8 @@ def articles(instance):
     """
     * article
     """
-    return 0
+    base_score = int(instance.timestamp.timestamp())
+    return base_score
 
 
 
