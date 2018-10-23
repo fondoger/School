@@ -32,33 +32,6 @@ def get_status(id: IntLike) -> 'Status':
         rd.set(key, data, Keys.status_expire)
     return status
 
-def get_statuses(ids: List[IntLike]) -> List['Status']:
-    """
-    get multiple statuses by ids
-    result may not have same length of `ids` and
-    may not returned in their's orignal order
-    """
-    statuses = []
-    missed_ids = []
-    # get from redis cache
-    for index, id in enumerate(ids):
-        key = Keys.status.format(id)
-        data = rd.get(key)
-        if data != None:
-            status = pickle.loads(data)
-            status = db.session.merge(status, load=False)
-            statuses.append(status)
-            rd.expire(key, Keys.status_expire)
-        else:
-            missed_ids.append(id)
-    # get from mysql
-    missed_statuses = Status.query.filter(Status.id.in_(missed_ids)).all()
-    for s in missed_statuses:
-        statuses.append(s)
-        key = Keys.status.format(id)
-        data = pickle.dumps(status)
-        rd.set(key, data, Keys.status_expire)
-    return statuses
 
 def _cache_liked_users(id: IntLike):
     key = Keys.status_liked_users.format(id)
@@ -75,16 +48,23 @@ def is_status_liked_by(id: IntLike, other_id: IntLike) -> bool:
         _cache_liked_users(id)
     return rd.sismember(key, other_id)
 
+
+def cache_status_json(status_json):
+    """ Cache unprocessed status_json """
+    rd.hmset(key, status_json)
+    rd.expire(key, Keys.status_json_expire)
+
 @logfuncall
-def get_status_json(id: IntLike) -> dict:
+def get_status_json(id: IntLike, only_from_cache=False) -> dict:
     """
+    Return processed status_json
     None is returned in case of status is not found
     """
     key = Keys.status_json.format(id)
     data = rd.hgetall(key)
     result = None
     # data is a dict with bytes key and bytes value
-    if data:
+    if data:    # hit in redis cache
         result = {
             'id': int(data[b'id']),
             'type': data[b'type'].decode(),
@@ -97,31 +77,39 @@ def get_status_json(id: IntLike) -> dict:
             'group_id': data[b'group_id'].decode(),
             'pics_json': data[b'pics_json'].decode()
         }
-    else:
-        status = get_status(id)
-        if status == None:
-            return None
-        result = status.to_json(cache=True)
-        rd.hmset(key, result)
-    result['pics'] = json.loads(result['pics_json'])
-    result['user'] = get_user_json(result['user_id'])
-    result['liked_by_me'] = is_status_liked_by(id, g.user.id) if \
-            not g.user.is_anonymous else False
-    if result['type'] == 'GROUP_STATUS' or \
-            result['type'] == 'GROUP_POST':
-        print("Using Cache.get_group instead of Group.query")
-        group = Group.query.get(['group_id'])
-        result['group'] = group.to_json()
-    if result['type'] == 'GROUP_STATUS':
-        result['group_user_title'] = 'GROUP_TITLE_IN_CACHE'
-    # remove useless keys
-    result.pop('pics_json', None)
-    result.pop('user_id', None)
-    result.pop('group_id', None)
-    rd.expire(key, Keys.status_json_expire)
-    return result
+        rd.expire(key, Keys.status_json_expire)
+        return Status.process_json(result)
+    if only_from_cache:
+        return None
+    status = get_status(id)
+    if status == None:
+        return None
+    result = status.to_json(cache=True)
+    cache_status_json(result)
+    return Status.process_json(result)
 
-
+def multiget_status_json(ids: List[IntLike]) -> List['Status']:
+    """
+    get multiple statuses by ids
+    result may not have same length of `ids` and
+    may not returned in their's orignal order
+    """
+    statuses = []
+    missed_ids = []
+    # get from redis cache
+    for index, id in enumerate(ids):
+        status_json = get_status_json(id, only_from_cache=True)
+        if data != None:
+            statuses.append(status_json)
+        else:
+            missed_ids.append(id)
+    # get from mysql
+    missed_statuses = Status.query.filter(Status.id.in_(missed_ids)).all()
+    for s in missed_statuses:
+        status_json = s.to_json(cache=True)
+        cache_status_json(status_json)
+        statuses.append(Stauts.process_json(status_json))
+    return statuses
 
 
 

@@ -121,7 +121,32 @@ class Status(db.Model):
             raise Exception("No such type")
         self.type_id = idx
 
+    @staticmethod
+    def process_json(json_status):
+        import app.cache as Cache
+        json_status['user'] = Cache.get_user_json(self.user_id)
+        json_status['pics'] = json.loads(json_status['pics_json'])
+        json_status['liked_by_me'] = Cache.is_status_liked_by(\
+                self.id, g.user.id) if not \
+                g.user.is_anonymous else False
+        if json_status['type'] == 'GROUP_STATUS' or \
+                self.type == 'GROUP_POST':
+            print("TODO: using Cache.get_group")
+            group = Group.query.get(json_status['group_id'])
+            json_status['group'] = Group.query.get(json)
+        if self.type == 'GROUP_POST':
+            print("TODO: using Cache.get_group_user_title")
+            json_status['group_user_title'] = self.group.get_user_title(self.user_id)
+        json_status.pop('pics_json', None)
+        json_status.pop('user_id', None)
+        json_status.pop('group_id', None)
+        return json_status
+
     def to_json(self, cache=False):
+        """
+        process if cache==False
+        for compatibility to old code
+        """
         if not cache and current_app.config['DEBUG']:
             print("Deprecated: use Cache.get_status_json()")
         image_server = current_app.config['IMAGE_SERVER']
@@ -135,26 +160,12 @@ class Status(db.Model):
             'timestamp': self.timestamp,
             'replies': self.replies.count(),
             'likes': self.liked_users.count(),
+            'group_id': self.group_id,
+            'user_id': self.user_id,
+            'pics_json': json.dumps(pictures, ensure_ascii=False)
         }
-        if cache:
-            json_status['group_id'] = self.group_id
-            json_status['user_id'] = self.user_id
-            json_status['pics_json'] = json.dumps(pictures, ensure_ascii=False)
-        else:
-            import app.cache as Cache
-            json_status['user'] = Cache.get_user_json(self.user_id)
-            json_status['pics'] = pictures
-            json_status['liked_by_me'] = Cache.is_status_liked_by(self.id, g.user.id) \
-                    if not g.user.is_anonymous else False
-            if self.type == 'GROUP_STATUS' or \
-                    self.type == 'GROUP_POST':
-                print("TODO: using Cache.get_group")
-                json_status['group'] = self.group.to_json()
-            if self.type == 'GROUP_POST':
-                print("TODO: using Cache.get_group_user_title")
-                json_status['group_user_title'] = self.group.get_user_title(self.user_id)
-        # NOTE: `liked_by_me` and `group_user_title` is
-        # g.user relevant, which are set in app.cache.statuses
+        if not cache:
+            return Status.process_json(json_status)
         return json_status
 
 

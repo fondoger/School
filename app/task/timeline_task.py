@@ -22,13 +22,18 @@ def _handle(task_name):
         user_id = status.user_id
         # how to make sure user_followers are in
         follower_ids = Cache.get_follower_ids(user_id)
-        timeline_item = Keys.timeline_status.format(status_id)
+        timeline_item = Keys.timeline_item.format(status_id)
+        print("\n")
+        print("Follower_ids:", follower_ids)
+        print("\n")
         for follower_id in follower_ids:
             key = Keys.user_timeline.format(follower_id)
             # TODO: uncomment this
             #if rd.exists(key):
             # TODO: check where user viewed
+            print(key)
             rd.zadd(key, status.score, timeline_item)
+            print("Added timeline item for user:", follower_id)
     elif args[0] == Keys.status_deleted_prefix:
         status_id = args[1]
         follower_ids = Cache.get_follower_ids(user_id)

@@ -51,10 +51,10 @@ def get_follower_ids(id: IntLike):
     ids = rd.smembers(key)
     if not ids:
         _cache_followers(id)
-        rd.smembers(key)
+        ids = rd.smembers(key)
     rd.expire(key, Keys.user_followers_expire)
-    return list(ids)
-
+    ids = [ t.decode() for t in ids ]
+    return ids
 
 def _cache_user_posts(id: IntLike):
     key = Keys.user_statuses.format(id)

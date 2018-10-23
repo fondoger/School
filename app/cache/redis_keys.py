@@ -54,7 +54,10 @@ user_timeline = "user:{}:timeline"
 user_timeline_expire = 3600*24*10
 
 # this is for elements in user_timeline, not redis key
-timeline_status = "s:{}"
+timeline_status_item = "s:{}"
+timeline_status_prefix = "s"
+timeline_article_item = "a:{}"
+timeline_article_prefix = "a"
 
 
 

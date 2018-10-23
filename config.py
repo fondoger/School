@@ -38,8 +38,8 @@ class Config:
         file_handler.setLevel(logging.DEBUG)
         app.logger.addHandler(file_handler)
         # Set logger for SQLAlchemy
-        logging.basicConfig()
-        logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
+        #logging.basicConfig()
+        #logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 
 class Development(Config):
