@@ -48,9 +48,9 @@ def is_status_liked_by(id: IntLike, other_id: IntLike) -> bool:
         _cache_liked_users(id)
     return rd.sismember(key, other_id)
 
-
 def cache_status_json(status_json):
     """ Cache unprocessed status_json """
+    key = Keys.status_json.format(status_json['id'])
     rd.hmset(key, status_json)
     rd.expire(key, Keys.status_json_expire)
 
@@ -99,7 +99,7 @@ def multiget_status_json(ids: List[IntLike]) -> List['Status']:
     # get from redis cache
     for index, id in enumerate(ids):
         status_json = get_status_json(id, only_from_cache=True)
-        if data != None:
+        if status_json != None:
             statuses.append(status_json)
         else:
             missed_ids.append(id)
@@ -108,7 +108,7 @@ def multiget_status_json(ids: List[IntLike]) -> List['Status']:
     for s in missed_statuses:
         status_json = s.to_json(cache=True)
         cache_status_json(status_json)
-        statuses.append(Stauts.process_json(status_json))
+        statuses.append(Status.process_json(status_json))
     return statuses
 
 

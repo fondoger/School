@@ -35,14 +35,16 @@ def get_timeline():
                 article_ids.append(item[2:])
             else:
                 raise Exception("No such type")
-        statuses = Cache.get_statuses(status_ids)
+        statuses = Cache.multiget_status_json(status_ids)
         articles = []
         res_map = {}
         for s in statuses:
-            res_map[Keys.timeline_status_item.format(s.id)]  = s
+            item_key = Keys.timeline_status_item.format(s['id'])
+            res_map[item_key] = s
         for a in articles:
-            res_map[Keys.timeline_stauts_item.format(a.id)] = a
-        res = [ res_map[t].to_json() for t in items if t in res_map ]
+            item_key = Keys.timeline_status_item.format(a['id'])
+            res_map[item_key] = a
+        res = [ res_map[t] for t in items if t in res_map ]
         return jsonify(res)
     return bad_request("User has no timeline currently")
 

@@ -122,26 +122,29 @@ class Status(db.Model):
         self.type_id = idx
 
     @staticmethod
+    @logfuncall
     def process_json(json_status):
         import app.cache as Cache
-        json_status['user'] = Cache.get_user_json(self.user_id)
+        user_id = json_status['user_id']
+        json_status['user'] = Cache.get_user_json(user_id)
         json_status['pics'] = json.loads(json_status['pics_json'])
         json_status['liked_by_me'] = Cache.is_status_liked_by(\
-                self.id, g.user.id) if not \
+                user_id, g.user.id) if not \
                 g.user.is_anonymous else False
         if json_status['type'] == 'GROUP_STATUS' or \
-                self.type == 'GROUP_POST':
+                json_status['type'] == 'GROUP_POST':
             print("TODO: using Cache.get_group")
             group = Group.query.get(json_status['group_id'])
             json_status['group'] = Group.query.get(json)
-        if self.type == 'GROUP_POST':
+        if json_status['type'] == 'GROUP_POST':
             print("TODO: using Cache.get_group_user_title")
-            json_status['group_user_title'] = self.group.get_user_title(self.user_id)
+            json_status['group_user_title'] = group.get_user_title(user_id)
         json_status.pop('pics_json', None)
         json_status.pop('user_id', None)
         json_status.pop('group_id', None)
         return json_status
 
+    @logfuncall
     def to_json(self, cache=False):
         """
         process if cache==False
