@@ -5,7 +5,7 @@ from sqlalchemy.sql import text
 from app import db, rd
 from app.utils.logger import logfuncall
 import _pickle as pickle
-from . import popularity_score as Score
+import app.utils.score as Score
 import json
 
 # many to many
@@ -122,7 +122,6 @@ class Status(db.Model):
         self.type_id = idx
 
     @staticmethod
-    @logfuncall
     def process_json(json_status):
         import app.cache as Cache
         user_id = json_status['user_id']
@@ -198,8 +197,9 @@ def status_deleted(mapper, connection, target):
         Keys.status_liked_users.format(status_id),
     ]
     rd.delete(*keys_to_remove)
-    rd.lpush(Keys.timeline_events_queue,
-             Keys.status_deleted.format(status_id))
+    item = Keys.status_deleted.format(status_id=status_id,
+            user_id=target.user_id)
+    rd.lpush(Keys.timeline_events_queue, item)
 
 
 # many to many

@@ -14,6 +14,8 @@ user = "user:{}"
 user_expire = 3600*24*7
 
 # TODO: change this to Redis Hash data type
+# Fiels: id, username, avatar, self_intro, gender, self_intro,
+# member_since, last_seen, groups_enrolled, followed, followers
 user_json = "user:{}:json"
 user_json_expire = 3600*24*7
 
@@ -60,6 +62,10 @@ timeline_article_item = "a:{}"
 timeline_article_prefix = "a"
 
 
+"""
+Public timeline(Hot statuses)
+"""
+public_timeline = "public:timeline"
 
 """
 Status
@@ -92,16 +98,12 @@ group_user_title_expire = 3600*24*7
 Task Queue
 """
 
-"""
-status_updated:status_id
-status_deleted:status_id
-"""
 # Redis List
 timeline_events_queue = "timeline_events"
 
 status_updated = "status_updated:{}"
 status_updated_prefix = "status_updated"
-status_deleted = "status_deleted:{}"
+status_deleted = "status_deleted:{status_id}:{user_id}"
 status_deleted_prefix = "status_deleted"
 # A long time no-logged-in user comes back
 # Insert this to right of the queue for priority

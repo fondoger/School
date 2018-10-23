@@ -7,6 +7,11 @@ for statuses、articles and posts in order to
 provide timeline and hot rank
 """
 
+utc_format = '%Y-%m-%d %H:%M:%S.%f'
+
+def timestamp_to_score(timestamp: str):
+    t = datetime.strptime(timestamp, utc_str)
+    return int(t.timestamp())
 
 def status(instance):
     """
@@ -38,7 +43,7 @@ def status(instance):
     return score
 
 
-def articles(instance):
+def article(instance):
     """
     * article
     """

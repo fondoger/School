@@ -87,6 +87,15 @@ class User(UserMixin, db.Model):
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    @staticmethod
+    def process_json(json_user):
+        import app.cache as Cache
+        id = json_user['id']
+        t = Cache.is_user_followed_by(id, g.user.id) if\
+                not g.user.is_anonymous else False
+        json_user['followed_by_me'] = t
+        return json_user
+
     @logfuncall
     def to_json(self, cache=False):
         image_server = current_app.config['IMAGE_SERVER']
@@ -105,9 +114,7 @@ class User(UserMixin, db.Model):
             'followers': self.followers.count(),
         }
         if not cache:
-            t = Cache.is_user_followed_by(self.id, g.user.id) if\
-                    not g.user.is_anonymous else False
-            json_user['followed_by_me'] = t
+            return User.process_json(json_user)
         # `followed_by_me` is g.user relevant, which
         # is set in app.cache.users
         return json_user
@@ -127,8 +134,7 @@ class User(UserMixin, db.Model):
 @event.listens_for(User, "after_update")
 @event.listens_for(User, "after_delete")
 def clear_cache(mapper, connection, target):
-    # TODO: We don't need to drop all cache when a single column changed
-    # Simply delete all
+    import app.cache.redis_keys as Keys
     id = target.id
     keys_to_remove = [
         Keys.user.format(id),

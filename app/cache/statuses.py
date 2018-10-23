@@ -49,7 +49,7 @@ def is_status_liked_by(id: IntLike, other_id: IntLike) -> bool:
     return rd.sismember(key, other_id)
 
 def cache_status_json(status_json):
-    """ Cache unprocessed status_json """
+    """ Cache unprocessed status_json to redis """
     key = Keys.status_json.format(status_json['id'])
     rd.hmset(key, status_json)
     rd.expire(key, Keys.status_json_expire)
@@ -88,6 +88,7 @@ def get_status_json(id: IntLike, only_from_cache=False) -> dict:
     cache_status_json(result)
     return Status.process_json(result)
 
+@logfuncall
 def multiget_status_json(ids: List[IntLike]) -> List['Status']:
     """
     get multiple statuses by ids
@@ -103,6 +104,8 @@ def multiget_status_json(ids: List[IntLike]) -> List['Status']:
             statuses.append(status_json)
         else:
             missed_ids.append(id)
+    if not missed_ids:
+        return statuses
     # get from mysql
     missed_statuses = Status.query.filter(Status.id.in_(missed_ids)).all()
     for s in missed_statuses:

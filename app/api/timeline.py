@@ -6,16 +6,12 @@ from .errors import forbidden, unauthorized, bad_request, not_found
 from app import db, rd
 from app.models import *
 from app.utils.logger import logtimeusage, logfuncall
+import app.utils.score as Score
 from sqlalchemy.sql import text
 import app.cache as Cache
 import app.cache.redis_keys as Keys
 from datetime import datetime
 
-
-def _timestamp_to_score(timestamp: str):
-    format_str = '%Y-%m-%d %H:%M:%S.%f'
-    t = datetime.strptime(timestamp, format_str)
-    return int(t.timestamp())
 
 @logtimeusage
 @logfuncall
@@ -42,15 +38,19 @@ def _load_user_timeline(id):
     result = db.engine.execute(text(sql), UID=id,
             LIMIT=100, OFFSET=0)
     result = list(result)
+    args = []
     for item in result:
         if item['kind'] == 0:
             timeline_item = Keys.timeline_status_item.format(item['id'])
-            score = _timestamp_to_score(item['timestamp'])
+            score = Score.timestamp_to_score(item['timestamp'])
             rd.zadd(key, score, timeline_item)
         elif item['kind'] == 1:
             timeline_item = Keys.timeline_article_item.format(item['id'])
-            score = _timestamp_to_score(item['timestamp'])
-            rd.zadd(key, score, timeline_item)
+            score = Score.timestamp_to_score(item['timestamp'])
+            args += [score, timeline_item]
+    if args:
+        rd.zadd(key, *args)
+        rd.expire(key, Keys.user_timeline_expire)
 
 @api.route('/timeline', methods=['GET'])
 @logtimeusage
@@ -91,10 +91,43 @@ def get_timeline():
         item_key = Keys.timeline_status_item.format(s['id'])
         res_map[item_key] = s
     for a in articles:
-        item_key = Keys.timeline_status_item.format(a['id'])
+        item_key = Keys.timeline_article_item.format(a['id'])
         res_map[item_key] = a
     res = [ res_map[t] for t in items if t in res_map ]
     return jsonify(res)
+
+
+
+@api.route('/public_timeline', methods=['GET'])
+@login_required
+def get_public_timeline():
+    limit = request.args.get('limit', 10, type=int)
+    offset = request.args.get('offset', 10, type=int)
+    key = Keys.public_timeline
+    datas = rd.zrevrange(key, offset, offset + limit)
+    items = [ d.decode() for d in datas ]
+    status_ids = []
+    article_ids = []
+    for item in items:
+        if item[0] == Keys.timeline_status_prefix:
+            status_ids.append(item[2:])
+        elif item[0] == Keys.timeline_article_prefix:
+            article_ids.append(item[2:])
+        else:
+            raise Exception("No such type")
+    statuses = Cache.multiget_status_json(status_ids)
+    articles = []
+    res_map = {}
+    for s in statuses:
+        item_key = Keys.timeline_status_item.format(s['id'])
+        res_map[item_key] = s
+    for a in articles:
+        item_key = Keys.timeline_article_item.format(a['id'])
+        res_map[item_key] = a
+    res = [ res_map[t] for t in items if t in res_map ]
+    return jsonify(res)
+
+
 
 
 

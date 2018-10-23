@@ -72,6 +72,12 @@ def is_user_followed_by(id: IntLike, other_id: IntLike) -> bool:
     rd.expire(key, Keys.user_followers_expire)
     return rd.sismember(key, other_id)
 
+@logfuncall
+def cache_user_json(user_json):
+    """ Cache user_json to redis """
+    key = Keys.user_json.format(user_json['id'])
+    rd.hmset(key, user_json)
+    rd.expire(key, Keys.user_json_expire)
 
 @logfuncall
 def get_user_json(id: IntLike) -> dict:
@@ -81,6 +87,8 @@ def get_user_json(id: IntLike) -> dict:
     key = Keys.user_json.format(id)
     data = rd.hgetall(key)
     json_user = None
+    if not data:
+        print("###########################", key)
     # {} is returned if key not exists
     # NOTE: don't use `if data != None`,
     if data:
@@ -98,16 +106,14 @@ def get_user_json(id: IntLike) -> dict:
             'followed': int(data[b'followed']),
             'followers': int(data[b'followers']),
         }
-    else:
-        user = get_user(id)
-        if user == None:
-            return None
-        json_user = user.to_json(cache=True)
-        rd.hmset(key, json_user)
-    json_user['followed_by_me'] = is_user_followed_by(id,
-            g.user.id) if not g.user.is_anonymous else False
-    rd.expire(key, Keys.user_json_expire)
-    return json_user
+        rd.expire(key, Keys.user_json_expire)
+        return User.process_json(json_user)
+    user = get_user(id)
+    if user == None:
+        return None
+    json_user = user.to_json(cache=True)
+    cache_user_json(json_user)
+    return User.process_json(json_user)
 
 
 
