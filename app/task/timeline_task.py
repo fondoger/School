@@ -62,17 +62,24 @@ def _handle(task_name):
 class LoopThread(threading.Thread):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
+        self.should_stop = False
+    def stop(self):
+        self.should_stop = True
     def run(self):
         print("Started timelien events task...")
-        while True:
-            result = rd.brpop(Keys.timeline_events_queue)
+        while not self.should_stop:
+            result = rd.brpop(Keys.timeline_events_queue,
+                     timeout=5)
+            if result == None:
+                continue
             with _app.app_context():
                 _handle(result[1].decode())
 
 def start():
     thread = LoopThread()
+    thread.daemon = True
     thread.start()
+    atexit.register(lambda: thread.stop())
 
 
 
