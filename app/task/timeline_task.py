@@ -65,6 +65,7 @@ class LoopThread(threading.Thread):
         self.should_stop = False
     def stop(self):
         self.should_stop = True
+        print("Timeline task loop thread set to stop.")
     def run(self):
         print("Started timelien events task...")
         while not self.should_stop:
@@ -74,6 +75,7 @@ class LoopThread(threading.Thread):
                 continue
             with _app.app_context():
                 _handle(result[1].decode())
+        print("Timeline task loop thread stopped")
 
 def start():
     thread = LoopThread()

@@ -4,6 +4,7 @@ from sqlalchemy import event, orm
 from sqlalchemy.sql import text
 from app import db, rd
 from app.utils.logger import logfuncall
+from .groups import Group
 import _pickle as pickle
 import app.utils.score as Score
 import json
@@ -137,7 +138,7 @@ class Status(db.Model):
             json_status['group'] = Group.query.get(json)
         if json_status['type'] == 'GROUP_POST':
             print("TODO: using Cache.get_group_user_title")
-            json_status['group_user_title'] = group.get_user_title(user_id)
+            json_status['group_user_title'] = Cache.get_group_user_title(json_status['group_id'], user_id)
         json_status.pop('pics_json', None)
         json_status.pop('user_id', None)
         json_status.pop('group_id', None)

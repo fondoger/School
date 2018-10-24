@@ -90,7 +90,7 @@ group_expire = 3600*24*7
 group_json = "group:{}"
 group_json_expire = 3600*24*7
 
-group_user_title = "group:{}:user:{}:title"
+group_user_title = "group:{group_id}:user:{user_id}:title"
 group_user_title_expire = 3600*24*7
 
 
