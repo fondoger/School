@@ -80,7 +80,7 @@ def get_timeline():
     for item in items:
         if item[0] == Keys.timeline_status_prefix:
             status_ids.append(item[2:])
-        elif item[0] == Keys.timeline_status_prefix:
+        elif item[0] == Keys.timeline_article_prefix:
             article_ids.append(item[2:])
         else:
             raise Exception("No such type")

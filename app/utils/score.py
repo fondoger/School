@@ -1,4 +1,5 @@
 from . import *
+from datetime import datetime
 import math
 
 """
@@ -10,7 +11,12 @@ provide timeline and hot rank
 utc_format = '%Y-%m-%d %H:%M:%S.%f'
 
 def timestamp_to_score(timestamp: str):
-    t = datetime.strptime(timestamp, utc_str)
+    if isinstance(timestamp, datetime):
+        t = timestamp
+    elif isinstance(timestamp, str):
+        t = datetime.strptime(timestamp, utc_format)
+    else:
+        raise Exception("Wrong type")
     return int(t.timestamp())
 
 def status(instance):

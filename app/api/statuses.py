@@ -211,10 +211,10 @@ def get_status():
         return jsonify(res)
 
 
-    if type == "trending":
-        ids = rank.get_mixed()[offset:offset+limit]
-        ss = [Status.query.get(id).to_json() for id in ids]
-        return jsonify(ss)
+    #if type == "trending":
+        #ids = rank.get_mixed()[offset:offset+limit]
+        #ss = [Status.query.get(id).to_json() for id in ids]
+        #return jsonify(ss)
 
 
     if type == 'topic':
