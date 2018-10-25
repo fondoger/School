@@ -135,7 +135,8 @@ class OfficialAccount(db.Model):
     """
 
     id = db.Column(db.Integer, primary_key=True)
-    accountname = db.Column(db.String(32), nullable=False, index=True, unique=True)
+    accountname = db.Column(db.String(32), index=True,
+            unique=True, nullable=False)
     description = db.Column(db.Text)
     avatar = db.Column(db.String(64), nullable=False)
     page_url = db.Column(db.String(64))
@@ -148,9 +149,17 @@ class OfficialAccount(db.Model):
     subscribers = db.relationship('User', secondary=subscriptions,
         lazy='dynamic', backref=db.backref("subscriptions", lazy='dynamic'))
 
-    def to_json(self):
+    @staticmethod
+    def process_json(json_account):
+        import app.cache as Cache
+        json_account['followed_by_me'] = Cache.is_account_followed_by(
+                json_account['id'], g.user.id) \
+                if not g.user.is_anonymous else False
+        return json_account
+
+    def to_json(self, cache=False):
         imageServer = current_app.config['IMAGE_SERVER']
-        json = {
+        json_account = {
             'id': self.id,
             'avatar': imageServer + self.avatar,
             'accountname': self.accountname,
@@ -158,9 +167,10 @@ class OfficialAccount(db.Model):
             'page_url': self.page_url,
             'articles': self.articles.count(),
             'subscribers': self.subscribers.count(),
-            'followed_by_me': g.user in self.subscribers if g.user else False,
         }
-        return json
+        if not cache:
+            return OfficialAccount.process_json(json_account)
+        return json_account
 
     def __repr__(self):
         return '<OfficialAccount: %r>' % self.accountname

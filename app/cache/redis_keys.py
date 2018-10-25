@@ -95,6 +95,17 @@ group_user_title_expire = 3600*24*7
 
 
 """
+Official Account
+"""
+# Redis Hash
+official_account_json = "official_account:{}:json"
+official_account_json_expire = 3600*24*7
+# Redis Set
+official_account_subscribers = "official_account:{}:subscribers"
+official_account_subscribers_expire = 3600*24*7
+
+
+"""
 Task Queue
 """
 

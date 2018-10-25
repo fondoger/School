@@ -125,12 +125,12 @@ class Status(db.Model):
     @staticmethod
     def process_json(json_status):
         import app.cache as Cache
+        id = json_status['id']
         user_id = json_status['user_id']
         json_status['user'] = Cache.get_user_json(user_id)
         json_status['pics'] = json.loads(json_status['pics_json'])
         json_status['liked_by_me'] = Cache.is_status_liked_by(\
-                user_id, g.user.id) if not \
-                g.user.is_anonymous else False
+                id, g.user.id) if not g.user.is_anonymous else False
         if json_status['type'] == 'GROUP_STATUS' or \
                 json_status['type'] == 'GROUP_POST':
             print("TODO: using Cache.get_group")
@@ -138,7 +138,9 @@ class Status(db.Model):
             json_status['group'] = group.to_json()
         if json_status['type'] == 'GROUP_POST':
             print("TODO: using Cache.get_group_user_title")
-            json_status['group_user_title'] = Cache.get_group_user_title(json_status['group_id'], user_id)
+            t = Cache.get_group_user_title(json_status['group_id'],
+                    usre_id)
+            json_status['group_user_title'] = t
         json_status.pop('pics_json', None)
         json_status.pop('user_id', None)
         json_status.pop('group_id', None)

@@ -18,7 +18,7 @@ def get_group(int: IntLike):
     Get group instance by id
     None is returned in case of group not found
     """
-    key= Keys.group.format(id)
+    key = Keys.group.format(id)
     data = rd.get(key)
     if data != None:
         group = pickle.loads(data)

@@ -75,6 +75,7 @@ def get_timeline():
     datas = rd.zrevrange(key, offset, offset+limit-1)
     rd.expire(key, Keys.user_timeline_expire)
     items = [ d.decode() for d in datas ]
+    print("Timeline items:", items)
     status_ids = []
     article_ids = []
     for item in items:
