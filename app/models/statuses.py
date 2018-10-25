@@ -135,7 +135,7 @@ class Status(db.Model):
                 json_status['type'] == 'GROUP_POST':
             print("TODO: using Cache.get_group")
             group = Group.query.get(json_status['group_id'])
-            json_status['group'] = Group.query.get(json)
+            json_status['group'] = group.to_json()
         if json_status['type'] == 'GROUP_POST':
             print("TODO: using Cache.get_group_user_title")
             json_status['group_user_title'] = Cache.get_group_user_title(json_status['group_id'], user_id)
@@ -173,6 +173,7 @@ class Status(db.Model):
 
 
 @logfuncall
+@event.listens_for(Status, "after_insert")
 @event.listens_for(Status, "after_update")
 def clear_cache(mapper, connection, target):
     # TODO: add dirty bit check

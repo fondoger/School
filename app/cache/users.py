@@ -87,8 +87,6 @@ def get_user_json(id: IntLike) -> dict:
     key = Keys.user_json.format(id)
     data = rd.hgetall(key)
     json_user = None
-    if not data:
-        print("###########################", key)
     # {} is returned if key not exists
     # NOTE: don't use `if data != None`,
     if data:

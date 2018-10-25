@@ -16,8 +16,8 @@ IntLike = Union[int, str]
 
 def get_status(id: IntLike) -> 'Status':
     """
-    get status by id
-    none is returned in case of status not found
+    Get status instance by id
+    None is returned in case of status not found
     """
     key = Keys.status.format(id)
     data = rd.get(key)

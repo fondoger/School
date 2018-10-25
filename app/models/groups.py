@@ -102,7 +102,11 @@ class Group(db.Model):
                 return m.user
         raise Exception('Group %s has no onwer' % self.groupname)
 
-    def to_json(self):
+    @staticmethod
+    def process_json(json_group: dict):
+        return json_group
+
+    def to_json(self, cache=False):
         imageServer = current_app.config['IMAGE_SERVER']
         return {
             'id': self.id,
