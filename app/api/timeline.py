@@ -63,7 +63,7 @@ def get_timeline():
     offset: 可选,default=10
     """
     limit = request.args.get('limit', 10, type=int)
-    offset = request.args.get('offset', 10, type=int)
+    offset = request.args.get('offset', 0, type=int)
     key = Keys.user_timeline.format(g.user.id)
     print("View:", key)
     if not rd.exists(key):
@@ -72,7 +72,7 @@ def get_timeline():
         #         Keys.user_returned.format(g.user.id))
         _load_user_timeline(g.user.id)
     """element: type:id,  type=s|a"""
-    datas = rd.zrevrange(key, offset, offset+limit)
+    datas = rd.zrevrange(key, offset, offset+limit-1)
     rd.expire(key, Keys.user_timeline_expire)
     items = [ d.decode() for d in datas ]
     status_ids = []
@@ -102,9 +102,9 @@ def get_timeline():
 @login_required
 def get_public_timeline():
     limit = request.args.get('limit', 10, type=int)
-    offset = request.args.get('offset', 10, type=int)
+    offset = request.args.get('offset', 0, type=int)
     key = Keys.public_timeline
-    datas = rd.zrevrange(key, offset, offset + limit)
+    datas = rd.zrevrange(key, offset, offset + limit - 1)
     items = [ d.decode() for d in datas ]
     status_ids = []
     article_ids = []

@@ -45,8 +45,7 @@ def get_user():
         users = users.offset(offset).limit(limit)
         users = [u.to_json() for u in users]
         return jsonify(users)
-
-    return bad_request("参数有误")
+    return jsonify(g.user.to_json())
 
 
 @api.route('/user', methods=['PATCH', 'PUT'])
