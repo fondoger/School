@@ -6,7 +6,7 @@ from .sales import Sale, SaleComment, SalePicture
 from .other import TempImage
 from .messages import Message, TextMessage
 from .official_accounts import OfficialAccount
-from .article import Article, ArticleReply
+from .articles import Article, ArticleReply
 
 
 from flask_login import AnonymousUserMixin

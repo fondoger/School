@@ -53,7 +53,7 @@ def get_status_json(id: IntLike, only_from_cache=False) -> dict:
         return Status.process_json(result)
     if only_from_cache:
         return None
-    status = get_status(id)
+    status = Status.query.get(id)
     if status == None:
         return None
     result = status.to_json(cache=True)

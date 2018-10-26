@@ -43,11 +43,11 @@ def _handle(task_name):
     args = task_name.split(":")
     if args[0] == Keys.status_updated_prefix:
         status_id = args[1]
-        status = Cache.get_status(status_id)
-        if status == None:
+        status_json = Cache.get_status_json(status_id)
+        if status_json == None:
             return
-        owner_id = status.user.id
-        score = status.score
+        owner_id = status_json['user_id']
+        score = status_json['score']
         item = Keys.timeline_status_item.format(status_id)
         _insert_item_into_public_timeline(score, item)
         _insert_item_into_followers_timeline(owner_id, score, item)

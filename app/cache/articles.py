@@ -1,5 +1,5 @@
 from flask import g
-from app import db, id
+from app import db, rd
 from typing import List, Union
 from sqlalchemy.sql import text
 import json
@@ -13,7 +13,7 @@ IntLike = Union[str, int]
 
 def cache_article_json(article_json):
     """ Cache article_json to redis """
-    key = Keys.aritcle_json.format(article_json['id'])
+    key = Keys.article_json.format(article_json['id'])
     data = json.dumps(article_json, ensure_ascii=False)
     rd.set(key, data, ex=Keys.article_json_expire)
 
@@ -27,7 +27,7 @@ def get_article_json(id: IntLike, only_from_cache=False) -> dict:
     data = rd.get(key)  # none is returned if not exists
     if data != None:
         json_article = json.loads(data.decode())
-        rd.expire(key, Keys.article_json)
+        rd.expire(key, Keys.article_json_expire)
         return Article.process_json(json_article)
     if only_from_cache:
         return None
@@ -59,8 +59,8 @@ def multiget_article_json(ids: List[IntLike]) -> List['Article']:
         return articles
     # get from mysql
     missed_articles = Article.query.filter(Article.id.in_(missed_ids)).all()
-    for s in missed_articles:
-        article_json = s.to_json(cache=True)
+    for a in missed_articles:
+        article_json = a.to_json(cache=True)
         cache_article_json(article_json)
         articles.append(Article.process_json(article_json))
     return articles

@@ -4,6 +4,7 @@ from sqlalchemy import event, orm
 from sqlalchemy.sql import text
 from app import db, rd
 from app.utils.logger import logfuncall
+from werkzeug.http import http_date
 from .groups import Group
 import _pickle as pickle
 import app.utils.score as Score
@@ -127,7 +128,7 @@ class Status(db.Model):
         if json_status['type'] == 'GROUP_POST':
             print("TODO: using Cache.get_group_user_title")
             t = Cache.get_group_user_title(json_status['group_id'],
-                    usre_id)
+                    user_id)
             json_status['group_user_title'] = t
         # Remove useless keys
         json_status.pop('pics_json', None)
@@ -152,7 +153,7 @@ class Status(db.Model):
             'type': self.type,
             'title': self.title,
             'text': self.text,
-            'timestamp': self.timestamp,
+            'timestamp': http_date(self.timestamp.utctimetuple()),
             'replies': self.replies.count(),
             'likes': self.liked_users.count(),
             'group_id': self.group_id,
@@ -168,7 +169,6 @@ def _clear_redis_cache(instance: Status):
     import app.cache.redis_keys as Keys
     status_id = instance.id
     keys_to_remove = [
-        Keys.status.format(status_id),
         Keys.status_json.format(status_id),
         Keys.status_liked_users.format(status_id),
     ]
@@ -178,6 +178,7 @@ def _clear_redis_cache(instance: Status):
 @event.listens_for(Status, "after_insert")
 @event.listens_for(Status, "after_update")
 def status_updated(mapper, connection, target):
+    import app.cache.redis_keys as Keys
     _clear_redis_cache(target)
     rd.lpush(Keys.timeline_events_queue,
              Keys.status_updated.format(target.id))
@@ -186,6 +187,7 @@ def status_updated(mapper, connection, target):
 @logfuncall
 @event.listens_for(Status, "after_delete")
 def status_deleted(mapper, connection, target):
+    import app.cache.redis_keys as Keys
     _clear_redis_cache(target)
     # add item to timeline queue
     timeline_item = Keys.status_deleted.format(status_id=status_id,

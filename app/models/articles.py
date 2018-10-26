@@ -1,11 +1,12 @@
 from flask import g, current_app
 from datetime import datetime
-from .. import db
+from app import db, rd
 from .users import User
 from random import randint
+from werkzeug.http import http_date
+from sqlalchemy import event
 from sqlalchemy.ext.associationproxy import association_proxy
-
-
+from app.utils.logger import logfuncall
 
 # many to many
 # Typo: `users_id` should be `user_id`, but it's not easy to recorrect it
@@ -77,20 +78,31 @@ class Article(db.Model):
         lazy='dynamic', cascade='all, delete-orphan')
     liked_users = db.relationship('User', secondary=article_likes, lazy='dynamic')
 
-    def to_json(self):
-        return {
+    @staticmethod
+    def process_json(article_json):
+        import app.cache as Cache
+        i = article_json['official_account_id']
+        t = Cache.get_official_account_json(i)
+        article_json['official_account'] = t
+        article_json.pop("official_account_id")
+        return article_json
+
+    def to_json(self, cache=False):
+        article_json = {
             'id': self.id,
             'type': self.type,
-            'timestamp': self.timestamp,
+            'timestamp': http_date(self.timestamp.utctimetuple()),
             'replies': self.replies.count(),
             'likes': self.liked_users.count(),
             'extra_key': self.extra_key,
             'extra_url': self.extra_url,
             'extra_data': self.extra_data,
             'extra_desc': self.extra_desc,
-            'official_account': self.official_account.to_json(),
+            'official_account_id': self.official_account_id,
         }
-
+        if not cache:
+            return Article.process_json(article_json)
+        return article_json
 
     TYPES = {
         'WEIXIN': 0,

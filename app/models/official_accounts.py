@@ -3,115 +3,9 @@ from datetime import datetime
 from .. import db
 from .users import User
 from random import randint
+from sqlalchemy import event
 from sqlalchemy.ext.associationproxy import association_proxy
-
-
-
-# many to many
-# Typo: `users_id` should be `user_id`, but it's not easy to recorrect it
-# As it won't influence my python code, so i decide to not change it
-article_likes = db.Table('article_likes',
-    db.Column('article_id', db.Integer, db.ForeignKey('articles.id'), primary_key=True),
-    db.Column('users_id', db.Integer, db.ForeignKey('users.id'), primary_key=True)
-)
-# many to many
-article_reply_likes = db.Table('article_reply_likes',
-    db.Column('article_reply_id', db.Integer, db.ForeignKey('article_replies.id'), primary_key=True),
-    db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True)
-)
-
-class ArticleReply(db.Model):
-    __tablename__ = 'article_replies'
-
-    id = db.Column(db.Integer, primary_key=True)
-    text = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    article_id = db.Column(db.Integer, db.ForeignKey('articles.id'),
-        nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'),
-        nullable=False)
-
-    """ Relationships """
-    liked_users = db.relationship('User', secondary=article_reply_likes, lazy='dynamic')
-
-    def to_json(self):
-        return {
-            'id': self.id,
-            'text': self.text,
-            'user': self.user.to_json(),
-            'likes': self.liked_users.count(),
-            'liked_by_me': g.user in self.liked_users,
-            'timestamp': self.timestamp,
-        }
-
-class Article(db.Model):
-    __tablename__ = "articles"
-
-    """
-    订阅号的文章
-
-    站外内容：
-        type: weibo/weixin
-        时间：timestamp
-        源地址：手动导入微信文章
-        附加内容：按个网站区别对待(dumpedjson保存)
-
-    站内内容以后再添加：
-        有能力发文章的只能是非正式的团体，让他们通过团体发文章
-        如果是个人的话，写文章肯定是首选公众号了。
-
-    """
-    id = db.Column(db.Integer, primary_key=True)
-    type_id = db.Column(db.Integer) # using type instead of type_id
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow,
-            nullable=False)
-    extra_url = db.Column(db.Text)
-    extra_key = db.Column(db.String(32))
-    extra_desc = db.Column(db.String(64))
-    extra_data = db.Column(db.Text)
-    official_account_id = db.Column(db.Integer,
-        db.ForeignKey('official_accounts.id'), nullable=False)
-
-    """ Relationships """
-    replies = db.relationship('ArticleReply', backref='article',
-        lazy='dynamic', cascade='all, delete-orphan')
-    liked_users = db.relationship('User', secondary=article_likes, lazy='dynamic')
-
-    def to_json(self):
-        return {
-            'id': self.id,
-            'type': self.type,
-            'timestamp': self.timestamp,
-            'replies': self.replies.count(),
-            'likes': self.liked_users.count(),
-            'extra_key': self.extra_key,
-            'extra_url': self.extra_url,
-            'extra_data': self.extra_data,
-            'extra_desc': self.extra_desc,
-            'official_account': self.official_account.to_json(),
-        }
-
-
-    TYPES = {
-        'WEIXIN': 0,
-        'WEIBO': 1,
-        'BUAANEWS': 2,
-        'BUAAART': 3,
-    }
-
-    @property
-    def type(self):
-        for k, v in Article.TYPES.items():
-            if v == self.type_id:
-                return k
-        raise Exception("no such type type_id=%d" % self.type_id)
-
-    @type.setter
-    def type(self, type_name):
-        idx = Article.TYPES.get(type_name, -1)
-        if idx == -1:
-            raise Exception("no such type")
-        self.type_id = idx
+from app.utils.logger import logfuncall
 
 
 # many to many
@@ -174,3 +68,17 @@ class OfficialAccount(db.Model):
 
     def __repr__(self):
         return '<OfficialAccount: %r>' % self.accountname
+
+def _remove_redis_cache(instance: OfficialAccount):
+    import app.cache.redis_keys as Keys
+    id = instance.id
+    keys_to_remove = [
+        Keys.official_account_json.format(id),
+        Keys.official_account_subscribers.format(id),
+    ]
+    rd.delete(*keys_to_remove)
+
+@event.listens_for(OfficialAccount, "after_delete")
+@event.listens_for(OfficialAccount, "after_update")
+def account_deleted(mapper, connection, target):
+    _remove_redis_cache(target)

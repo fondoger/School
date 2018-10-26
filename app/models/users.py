@@ -1,12 +1,13 @@
 from flask_login import AnonymousUserMixin, UserMixin
+from app import db, rd
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.http import http_date
 from flask import current_app, g
 from random import randint
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from app import db, rd
-from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.sql import text
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy import event
 from time import time
 import _pickle as pickle
@@ -107,8 +108,8 @@ class User(UserMixin, db.Model):
             'avatar': image_server+self.avatar,
             'self_intro': self.self_intro,
             'gender': self.gender,
-            'member_since': self.member_since,
-            'last_seen': self.last_seen,
+            'member_since': http_date(self.member_since.utctimetuple()),
+            'last_seen': http_date(self.member_since.utctimetuple()),
             'groups_enrolled': self.group_memberships.count(),
             'followed': self.followed.count(),
             'followers': self.followers.count(),

@@ -6,7 +6,7 @@ import json
 import _pickle as pickle
 from . import redis_keys as Keys
 from app.utils.logger import logfuncall
-from app.models import User, Status, Group
+from app.models import User, Status, Group, OfficialAccount
 
 IntLike = Union[int, str]
 
@@ -44,16 +44,16 @@ def get_official_account_json(id: IntLike):
     key = Keys.official_account_json.format(id)
     data = rd.get(key)
     json_account = None
-    if not data:
+    if data != None:
         json_account = json.loads(data.decode())
         rd.expire(key, Keys.official_account_json_expire)
-        return OfficialAccount.process_json(result)
+        return OfficialAccount.process_json(json_account)
     account = OfficialAccount.query.get(id)
     if account == None:
         return None
-    resule = account.to_json(cache=True)
-    cache_account_json(result)
-    return OfficialAccount.process_json(result)
+    json_account = account.to_json(cache=True)
+    cache_account_json(json_account)
+    return OfficialAccount.process_json(json_account)
 
 
 
