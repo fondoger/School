@@ -13,24 +13,6 @@ from app.models import User, Status, Group
 
 IntLike = Union[int, str]
 
-def get_group(int: IntLike):
-    """
-    Get group instance by id
-    None is returned in case of group not found
-    """
-    key = Keys.group.format(id)
-    data = rd.get(key)
-    if data != None:
-        group = pickle.loads(data)
-        group = db.session.merge(group, load=False)
-        rd.expire(key, Keys.group_expire)
-        return group
-    group = Group.query.get(id)
-    if group != None:
-        # cache group to redis
-        data = pickle.dumps(group)
-        rd.set(key, data, Keys.group_expire)
-    return group
 
 def get_group_user_title(group_id: IntLike, user_id: IntLike):
     """
@@ -58,8 +40,8 @@ def get_group_user_title(group_id: IntLike, user_id: IntLike):
 def cache_group_josn(group_json):
     """ Cache group_json to redis """
     key = Keys.group_json.format(group_json['id'])
-    rd.hmset(key, group_json)
-    rd.expire(key, Keys.group_json_expire)
+    data = json.dumps(group_json, ensure_ascii=False)
+    rd.set(key, data, ex=Keys.group_json_expire)
 
 def get_group_josn(id: IntLike):
     """
@@ -67,22 +49,13 @@ def get_group_josn(id: IntLike):
     None is returned in case of not found
     """
     key = Keys.group_json.format(id)
-    data = rd.hgetall(key)
+    data = rd.get(key)
     json_group = None
-    if not data:
-        json_group = {
-            'id': int(data[b'id']),
-            'description': data[b'description'].decode(),
-            'groupname': data[b'groupname'].decode(),
-            'avatar': data[b'avatar'].decode(),
-            'public': bool(data[b'public']),
-            'category': data[b'category'].decode(),
-            'created_at': data[b'created_at'].decode(),
-            'daily_statuses': int(data[b'dayly_statuses']),
-        }
+    if data != None:
+        json_group = josn.loads(data.decode())
         rd.expire(key, Key.group_json_expire)
         return Group.process_json(json_group)
-    group = get_group(id)
+    group = Group.query.get(id)
     if group == None:
         return None
     josn_group = group.to_json(cache=True)

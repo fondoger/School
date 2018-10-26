@@ -76,8 +76,8 @@ def is_user_followed_by(id: IntLike, other_id: IntLike) -> bool:
 def cache_user_json(user_json):
     """ Cache user_json to redis """
     key = Keys.user_json.format(user_json['id'])
-    rd.hmset(key, user_json)
-    rd.expire(key, Keys.user_json_expire)
+    data = json.dumps(user_json, ensure_ascii=False)
+    rd.set(key, data, ex=Keys.user_json_expire)
 
 @logfuncall
 def get_user_json(id: IntLike) -> dict:
@@ -85,25 +85,10 @@ def get_user_json(id: IntLike) -> dict:
     None is returned in case of user not exists
     """
     key = Keys.user_json.format(id)
-    data = rd.hgetall(key)
+    data = rd.get(key)
     json_user = None
-    # {} is returned if key not exists
-    # NOTE: don't use `if data != None`,
     if data:
-        # NOTE: keep json_user without nested dict
-        # data is a dict with bytes key and bytes value
-        json_user = {
-            'id': int(data[b'id']),
-            'username': data[b'username'].decode(),
-            'avatar': data[b'avatar'].decode(),
-            'self_intro': data[b'self_intro'].decode(),
-            'gender': int(data[b'gender']),
-            'member_since': data[b'member_since'].decode(),
-            'last_seen': data[b'member_since'].decode(),
-            'groups_enrolled': int(data[b'groups_enrolled']),
-            'followed': int(data[b'followed']),
-            'followers': int(data[b'followers']),
-        }
+        json_user = json.loads(data.decode())
         rd.expire(key, Keys.user_json_expire)
         return User.process_json(json_user)
     user = get_user(id)

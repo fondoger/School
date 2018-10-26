@@ -86,7 +86,7 @@ def get_timeline():
         else:
             raise Exception("No such type")
     statuses = Cache.multiget_status_json(status_ids)
-    articles = []
+    articles = Cache.multiget_article_json(article_ids)
     res_map = {}
     for s in statuses:
         item_key = Keys.timeline_status_item.format(s['id'])

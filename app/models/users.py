@@ -130,12 +130,11 @@ class User(UserMixin, db.Model):
     def password(self, password):
         self.password_hash = generate_password_hash(password)
 
-@logfuncall
-@event.listens_for(User, "after_update")
-@event.listens_for(User, "after_delete")
-def clear_cache(mapper, connection, target):
+
+
+def _clear_redis_cache(instance: User):
     import app.cache.redis_keys as Keys
-    id = target.id
+    id = instance.id
     keys_to_remove = [
         Keys.user.format(id),
         Keys.user_token.format(id),
@@ -143,6 +142,19 @@ def clear_cache(mapper, connection, target):
         Keys.user_followers.format(id),
     ]
     rd.delete(*keys_to_remove)
+
+@logfuncall
+@event.listens_for(User, "after_insert")
+@event.listens_for(User, "after_update")
+def user_updated(mapper, connection, target):
+    _clear_redis_cache(target)
+    # TODO: Using Cache.cache_user_json() to reduce a sql query
+
+@logfuncall
+@event.listens_for(User, "after_delete")
+def user_deleted(mapper, connection, target):
+    _clear_reids_cache(target)
+
 
 def randomVerificationCode(context):
     return str(randint(100000, 999999))

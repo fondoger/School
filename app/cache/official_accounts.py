@@ -33,8 +33,8 @@ def is_account_followed_by(id: IntLike, user_id: IntLike) -> bool:
 def cache_account_json(account_json):
     """ Cache unprocessed account_json to redis """
     key = Keys.official_account_json.format(account_json['id'])
-    rd.hmset(key, account_json)
-    rd.expire(key, Keys.official_account_json_expire)
+    data = json.dumps(account_json)
+    rd.set(key, data, ex=Keys.official_account_json_expire)
 
 def get_official_account_json(id: IntLike):
     """
@@ -42,18 +42,10 @@ def get_official_account_json(id: IntLike):
     None is returned in case of not found
     """
     key = Keys.official_account_json.format(id)
-    data = rd.hgetall(key)
+    data = rd.get(key)
     json_account = None
     if not data:
-        json_account = {
-            'id': int(data[b'id']),
-            'avatar': data[b'avatar'].decode(),
-            'accountname': data[b'accountname'].decode(),
-            'description': data[b'description'].decode(),
-            'page_url': data[b'page_url'].decode(),
-            'articles': int(data[b'articles']),
-            'subscribers': int(data[b'subscribers']),
-        }
+        json_account = json.loads(data.decode())
         rd.expire(key, Keys.official_account_json_expire)
         return OfficialAccount.process_json(result)
     account = OfficialAccount.query.get(id)

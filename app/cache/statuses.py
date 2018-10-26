@@ -14,25 +14,6 @@ from app.models import User, Status
 
 IntLike = Union[int, str]
 
-def get_status(id: IntLike) -> 'Status':
-    """
-    Get status instance by id
-    None is returned in case of status not found
-    """
-    key = Keys.status.format(id)
-    data = rd.get(key)
-    if data != None:
-        status = pickle.loads(data)
-        status = db.session.merge(status, load=False)
-        rd.expire(key, Keys.status_expire)
-        return status
-    status = Status.query.get(id)
-    if status != None:
-        data = pickle.dumps(status)
-        rd.set(key, data, Keys.status_expire)
-    return status
-
-
 def _cache_liked_users(id: IntLike):
     key = Keys.status_liked_users.format(id)
     sql = 'select user_id from status_likes where status_id=:SID'
@@ -51,32 +32,23 @@ def is_status_liked_by(id: IntLike, other_id: IntLike) -> bool:
 def cache_status_json(status_json):
     """ Cache unprocessed status_json to redis """
     key = Keys.status_json.format(status_json['id'])
-    rd.hmset(key, status_json)
-    rd.expire(key, Keys.status_json_expire)
+    data = json.dumps(status_json, ensure_ascii=False)
+    rd.set(key, data, ex=Keys.status_json_expire)
 
 @logfuncall
 def get_status_json(id: IntLike, only_from_cache=False) -> dict:
     """
-    Return processed status_json
-    None is returned in case of status is not found
+    Geturn processed status_json
+
+    * None is returned in case of status is not found
+    * `only_from_cache` is for multiget_status_json()
     """
     key = Keys.status_json.format(id)
-    data = rd.hgetall(key)
+    data = rd.get(key)
     result = None
     # data is a dict with bytes key and bytes value
     if data:    # hit in redis cache
-        result = {
-            'id': int(data[b'id']),
-            'type': data[b'type'].decode(),
-            'title': data[b'title'].decode(),
-            'text': data[b'text'].decode(),
-            'timestamp': data[b'timestamp'].decode(),
-            'replies': int(data[b'replies']),
-            'likes': int(data[b'likes']),
-            'user_id': data[b'user_id'].decode(),
-            'group_id': data[b'group_id'].decode(),
-            'pics_json': data[b'pics_json'].decode()
-        }
+        result = json.loads(data.decode())
         rd.expire(key, Keys.status_json_expire)
         return Status.process_json(result)
     if only_from_cache:
@@ -91,9 +63,10 @@ def get_status_json(id: IntLike, only_from_cache=False) -> dict:
 @logfuncall
 def multiget_status_json(ids: List[IntLike]) -> List['Status']:
     """
-    get multiple statuses by ids
+    Get multiple statuses by ids
+
     result may not have same length of `ids` and
-    may not returned in their's orignal order
+    may not returned in their's original order
     """
     statuses = []
     missed_ids = []

@@ -99,22 +99,10 @@ class Status(db.Model):
         backref=db.backref('liked_status', lazy='dynamic'))
 
     @property
-    def score(self):
-        # lazy load
-        if not hasattr(self, '__score'):
-            self.__score = Score.status(self)
-        return self.__score
-
-    @score.setter
-    def score(self, new_score):
-        self.__score = new_score
-
-    @property
     def type(self):
         for k, v in Status.TYPES.items():
             if v == self.type_id:
                 return k
-
     @type.setter
     def type(self, type_name):
         idx = Status.TYPES.get(type_name, -1)
@@ -141,9 +129,11 @@ class Status(db.Model):
             t = Cache.get_group_user_title(json_status['group_id'],
                     usre_id)
             json_status['group_user_title'] = t
+        # Remove useless keys
         json_status.pop('pics_json', None)
         json_status.pop('user_id', None)
         json_status.pop('group_id', None)
+        json_status.pop('score', None)
         return json_status
 
     @logfuncall
@@ -167,44 +157,40 @@ class Status(db.Model):
             'likes': self.liked_users.count(),
             'group_id': self.group_id,
             'user_id': self.user_id,
-            'pics_json': json.dumps(pictures, ensure_ascii=False)
+            'pics_json': json.dumps(pictures, ensure_ascii=False),
+            'score': Score.status(self),
         }
         if not cache:
             return Status.process_json(json_status)
         return json_status
 
+def _clear_redis_cache(instance: Status):
+    import app.cache.redis_keys as Keys
+    status_id = instance.id
+    keys_to_remove = [
+        Keys.status.format(status_id),
+        Keys.status_json.format(status_id),
+        Keys.status_liked_users.format(status_id),
+    ]
+    rd.delete(*keys_to_remove)
 
 @logfuncall
 @event.listens_for(Status, "after_insert")
 @event.listens_for(Status, "after_update")
-def clear_cache(mapper, connection, target):
-    # TODO: add dirty bit check
-    import app.cache.redis_keys as Keys
-    status_id = target.id
-    keys_to_remove = [
-        Keys.status.format(status_id),
-        Keys.status_json.format(status_id),
-        Keys.status_liked_users.format(status_id),
-    ]
-    rd.delete(*keys_to_remove)
+def status_updated(mapper, connection, target):
+    _clear_redis_cache(target)
     rd.lpush(Keys.timeline_events_queue,
-             Keys.status_updated.format(status_id))
+             Keys.status_updated.format(target.id))
+    # TODO: Using Cache.cache_status_json() to reduce a sql query
 
 @logfuncall
 @event.listens_for(Status, "after_delete")
 def status_deleted(mapper, connection, target):
-    import app.cache.redis_keys as Keys
-    status_id = target.id
-    keys_to_remove = [
-        Keys.status.format(status_id),
-        Keys.status_json.format(status_id),
-        Keys.status_liked_users.format(status_id),
-    ]
-    rd.delete(*keys_to_remove)
-    item = Keys.status_deleted.format(status_id=status_id,
+    _clear_redis_cache(target)
+    # add item to timeline queue
+    timeline_item = Keys.status_deleted.format(status_id=status_id,
             user_id=target.user_id)
     rd.lpush(Keys.timeline_events_queue, item)
-
 
 # many to many
 status_topic = db.Table('status_topic',

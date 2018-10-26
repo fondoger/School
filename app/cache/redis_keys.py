@@ -70,9 +70,6 @@ public_timeline = "public:timeline"
 """
 Status
 """
-status = "status:{}"
-status_expire = 3600*24*7
-
 status_json = "status:{}:json"
 status_json_expire = 3600*24*7
 
@@ -84,12 +81,11 @@ status_liked_users_expire = 3600*24*7
 """
 Group
 """
-group = "group:{}"
-group_expire = 3600*24*7
 
-group_json = "group:{}"
+# Redis String
+group_json = "group:{}:json"
 group_json_expire = 3600*24*7
-
+# Redis String
 group_user_title = "group:{group_id}:user:{user_id}:title"
 group_user_title_expire = 3600*24*7
 
@@ -97,12 +93,19 @@ group_user_title_expire = 3600*24*7
 """
 Official Account
 """
-# Redis Hash
+# Redis String
 official_account_json = "official_account:{}:json"
 official_account_json_expire = 3600*24*7
 # Redis Set
 official_account_subscribers = "official_account:{}:subscribers"
 official_account_subscribers_expire = 3600*24*7
+
+"""
+Articles
+"""
+# Redis String
+article_json = "article:{}:json"
+article_json_expire = 3600*24*7
 
 
 """
@@ -116,6 +119,10 @@ status_updated = "status_updated:{}"
 status_updated_prefix = "status_updated"
 status_deleted = "status_deleted:{status_id}:{user_id}"
 status_deleted_prefix = "status_deleted"
+article_updated = "article_updated:{}"
+article_updated_prefix = "article_updated"
+article_deleted = "article_deleted:{article_id}:{user_id}"
+article_deleted_prefix = "article_deleted"
 # A long time no-logged-in user comes back
 # Insert this to right of the queue for priority
 user_returned = "user_returned:{}"
