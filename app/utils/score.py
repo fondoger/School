@@ -1,6 +1,8 @@
 from . import *
 from datetime import datetime
+from typing import Union
 import math
+import json as Json
 
 """
 This file provides functions to calculate scores
@@ -8,18 +10,15 @@ for statuses、articles and posts in order to
 provide timeline and hot rank
 """
 
-utc_format = '%Y-%m-%d %H:%M:%S.%f'
-
-def timestamp_to_score(timestamp: str):
-    if isinstance(timestamp, datetime):
-        t = timestamp
-    elif isinstance(timestamp, str):
-        t = datetime.strptime(timestamp, utc_format)
+def timestamp_to_score(timestamp: Union[float, datetime]):
+    if isinstance(timestamp, float):
+        return int(timestamp)
+    elif isinstance(timestamp, datetime):
+        return int(timestamp.timestamp())
     else:
-        raise Exception("Wrong type")
-    return int(t.timestamp())
+        raise Exception("Wrong timestamp type")
 
-def status(instance):
+def from_status_json(json):
     """
     * 初始score为用户的posix timestamp
     * 有n张图片，score往后推根号n 个半小时
@@ -33,27 +32,28 @@ def status(instance):
     ## 在凌晨5点统一将昨天的score加上8小时(睡眠时间)
     ## 这样就能保证昨天晚上的热门内容早上能够持续
     """
-    base_score = int(instance.timestamp.timestamp())
-    strlen_score = 2 * len(instance.text) * 60
+    base_score = timestamp_to_score(json['timestamp'])
+    strlen_score = 2 * len(json['text']) * 60
     # requires a sql query
     # TODO: read from redis first
-    images = instance.pictures.count()
+    images = len(Json.loads(json['pics_json']))
     images_score = math.sqrt(images) * 3600 / 2
     # TODO: read from redis first
-    likes = instance.liked_users.count()
+    likes = json['likes']
     likes_score = math.sqrt(likes) * 3600
     # TODO: read from redis first
-    replies = instance.replies.count()
+    replies = json['replies']
     replies_score = math.sqrt(replies) * 3600
-    score = base_score + strlen_score + images_score + likes_score + replies_score
+    score = base_score + strlen_score + images_score \
+            + likes_score + replies_score
     return score
 
 
-def article(instance):
+def from_article_json(json):
     """
     * article
     """
-    base_score = int(instance.timestamp.timestamp())
+    base_score = timestamp_to_score(json['timestamp'])
     return base_score
 
 

@@ -3,10 +3,11 @@ from datetime import datetime
 from app import db, rd
 from .users import User
 from random import randint
-from werkzeug.http import http_date
 from sqlalchemy import event
 from sqlalchemy.ext.associationproxy import association_proxy
 from app.utils.logger import logfuncall
+from app.utils import to_http_date
+
 
 # many to many
 # Typo: `users_id` should be `user_id`, but it's not easy to recorrect it
@@ -84,6 +85,8 @@ class Article(db.Model):
         i = article_json['official_account_id']
         t = Cache.get_official_account_json(i)
         article_json['official_account'] = t
+        article_json['timestamp'] = to_http_date(
+                article_json['timestamp'])
         article_json.pop("official_account_id")
         return article_json
 
@@ -91,7 +94,7 @@ class Article(db.Model):
         article_json = {
             'id': self.id,
             'type': self.type,
-            'timestamp': http_date(self.timestamp.utctimetuple()),
+            'timestamp': self.timestamp.timestamp(),
             'replies': self.replies.count(),
             'likes': self.liked_users.count(),
             'extra_key': self.extra_key,
@@ -137,20 +140,24 @@ def _clear_redis_cache(instance: Article):
 @event.listens_for(Article, "after_insert")
 @event.listens_for(Article, "after_update")
 def article_updated(mapper, connection, target):
-    import app.cache as Cache
+    import app.cache.redis_keys as Keys
     _clear_redis_cache(target)
     # add item to timeline queue
-    timtline_item = Keys.article_updated.format(target.id)
+    timtline_item = Keys.article_updated.format(
+            article_id=target.id,
+            account_id=target.official_account_id)
     rd.lpush(Keys.timeline_events_queue, timeline_item)
     # TODO: Using Cache.cache_article_json() to reduce a sql query
 
 @logfuncall
 @event.listens_for(Article, "after_delete")
 def article_delete(mapper, connection, target):
+    import app.cache.redis_keys as Keys
     _clear_redis_cache(target)
     timeline_item = Keys.article_deleted.format(
-            article_id=target.id, user_id=target.user_id)
-    rd.lpush(Keys.timeline_events_queue, timelien_item)
+            article_id=target.id,
+            account_id=target.official_account_id)
+    rd.lpush(Keys.timeline_events_queue, timeline_item)
 
 
 

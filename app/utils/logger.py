@@ -6,7 +6,6 @@ def logfuncall(func):
         if current_app.config['DEBUG']:
             print("[LOG]Function called:", func.__name__ + "()", args, kwargs)
         return func(*args, **kwargs)
-
     return wrapper
 
 def logtimeusage(func):

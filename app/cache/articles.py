@@ -17,7 +17,9 @@ def cache_article_json(article_json):
     data = json.dumps(article_json, ensure_ascii=False)
     rd.set(key, data, ex=Keys.article_json_expire)
 
-def get_article_json(id: IntLike, only_from_cache=False) -> dict:
+def get_article_json(id: IntLike,
+        only_from_cache=False,
+        process_json=True) -> dict:
     """
     Get  article json by id
 
@@ -28,6 +30,8 @@ def get_article_json(id: IntLike, only_from_cache=False) -> dict:
     if data != None:
         json_article = json.loads(data.decode())
         rd.expire(key, Keys.article_json_expire)
+        if not process_json:
+            return json_article
         return Article.process_json(json_article)
     if only_from_cache:
         return None
@@ -36,6 +40,8 @@ def get_article_json(id: IntLike, only_from_cache=False) -> dict:
         return None
     json_article = article.to_json(cache=True)
     cache_article_json(json_article)
+    if not process_json:
+        return json_article
     return Article.process_json(json_article)
 
 @logfuncall

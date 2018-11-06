@@ -1,5 +1,6 @@
 import time
 import json
+import traceback
 from functools import reduce
 
 
@@ -20,6 +21,7 @@ def do_sync_job(worker_wrapper, account_info, job_id):
         worker.sync()
     except Exception as e:
         print(str(e))
+        print(traceback.format_exc())
         print("Sync job failed: " + account_info['accountname'])
     # pause current job and resume next job
     resume_next_job(account_info['type'], job_id)

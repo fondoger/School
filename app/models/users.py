@@ -1,8 +1,7 @@
-from flask_login import AnonymousUserMixin, UserMixin
+from flask_login import UserMixin
 from app import db, rd
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.http import http_date
 from flask import current_app, g
 from random import randint
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
@@ -12,6 +11,7 @@ from sqlalchemy import event
 from time import time
 import _pickle as pickle
 from app.utils.logger import logfuncall
+from app.utils import to_http_date
 
 user_follows = db.Table('user_follows',
     db.Column('follower_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
@@ -93,8 +93,12 @@ class User(UserMixin, db.Model):
         import app.cache as Cache
         id = json_user['id']
         t = Cache.is_user_followed_by(id, g.user.id) if\
-                not g.user.is_anonymous else False
+                hasattr(g, 'user') else False
         json_user['followed_by_me'] = t
+        json_user['last_seen'] = to_http_date(
+                json_user['last_seen'])
+        json_user['member_since'] = to_http_date(
+                json_user['member_since'])
         return json_user
 
     @logfuncall
@@ -108,8 +112,8 @@ class User(UserMixin, db.Model):
             'avatar': image_server+self.avatar,
             'self_intro': self.self_intro,
             'gender': self.gender,
-            'member_since': http_date(self.member_since.utctimetuple()),
-            'last_seen': http_date(self.member_since.utctimetuple()),
+            'member_since': self.member_since.timestamp(),
+            'last_seen': self.last_seen.timestamp(),
             'groups_enrolled': self.group_memberships.count(),
             'followed': self.followed.count(),
             'followers': self.followers.count(),

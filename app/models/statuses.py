@@ -4,10 +4,9 @@ from sqlalchemy import event, orm
 from sqlalchemy.sql import text
 from app import db, rd
 from app.utils.logger import logfuncall
-from werkzeug.http import http_date
+from app.utils import to_http_date
 from .groups import Group
 import _pickle as pickle
-import app.utils.score as Score
 import json
 
 # many to many
@@ -116,10 +115,11 @@ class Status(db.Model):
         import app.cache as Cache
         id = json_status['id']
         user_id = json_status['user_id']
+        # Add keys
         json_status['user'] = Cache.get_user_json(user_id)
         json_status['pics'] = json.loads(json_status['pics_json'])
         json_status['liked_by_me'] = Cache.is_status_liked_by(\
-                id, g.user.id) if not g.user.is_anonymous else False
+                id, g.user.id) if hasattr(g, 'user') else False
         if json_status['type'] == 'GROUP_STATUS' or \
                 json_status['type'] == 'GROUP_POST':
             print("TODO: using Cache.get_group")
@@ -130,11 +130,13 @@ class Status(db.Model):
             t = Cache.get_group_user_title(json_status['group_id'],
                     user_id)
             json_status['group_user_title'] = t
+        # Alter keys
+        json_status['timestamp'] = to_http_date(
+                json_status['timestamp'])
         # Remove useless keys
         json_status.pop('pics_json', None)
         json_status.pop('user_id', None)
         json_status.pop('group_id', None)
-        json_status.pop('score', None)
         return json_status
 
     @logfuncall
@@ -153,13 +155,12 @@ class Status(db.Model):
             'type': self.type,
             'title': self.title,
             'text': self.text,
-            'timestamp': http_date(self.timestamp.utctimetuple()),
+            'timestamp': self.timestamp.timestamp(),
             'replies': self.replies.count(),
             'likes': self.liked_users.count(),
             'group_id': self.group_id,
             'user_id': self.user_id,
             'pics_json': json.dumps(pictures, ensure_ascii=False),
-            'score': Score.status(self),
         }
         if not cache:
             return Status.process_json(json_status)
@@ -174,25 +175,29 @@ def _clear_redis_cache(instance: Status):
     ]
     rd.delete(*keys_to_remove)
 
-@logfuncall
 @event.listens_for(Status, "after_insert")
 @event.listens_for(Status, "after_update")
+@logfuncall
 def status_updated(mapper, connection, target):
     import app.cache.redis_keys as Keys
+    import app.cache as Cache
     _clear_redis_cache(target)
-    rd.lpush(Keys.timeline_events_queue,
-             Keys.status_updated.format(target.id))
+    timeline_item = Keys.status_updated.format(
+            status_id=target.id,
+            user_id=target.user_id)
+    rd.lpush(Keys.timeline_events_queue, timeline_item)
     # TODO: Using Cache.cache_status_json() to reduce a sql query
 
-@logfuncall
 @event.listens_for(Status, "after_delete")
+@logfuncall
 def status_deleted(mapper, connection, target):
     import app.cache.redis_keys as Keys
     _clear_redis_cache(target)
     # add item to timeline queue
-    timeline_item = Keys.status_deleted.format(status_id=status_id,
+    timeline_item = Keys.status_deleted.format(
+            status_id=target.id,
             user_id=target.user_id)
-    rd.lpush(Keys.timeline_events_queue, item)
+    rd.lpush(Keys.timeline_events_queue, timeline_item)
 
 # many to many
 status_topic = db.Table('status_topic',
