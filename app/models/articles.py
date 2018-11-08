@@ -143,7 +143,7 @@ def article_updated(mapper, connection, target):
     import app.cache.redis_keys as Keys
     _clear_redis_cache(target)
     # add item to timeline queue
-    timtline_item = Keys.article_updated.format(
+    timeline_item = Keys.article_updated.format(
             article_id=target.id,
             account_id=target.official_account_id)
     rd.lpush(Keys.timeline_events_queue, timeline_item)

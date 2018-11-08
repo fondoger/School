@@ -13,7 +13,7 @@ def create_group():
     创建团体
     json = {
         "groupname": 团体名称
-        'avatar': 
+        'avatar':
     }
     """
     groupname = request.json.get('groupname', '')
@@ -92,12 +92,6 @@ def delete_group():
     db.session.commit()
     return jsonify({'id':id, 'message': 'delete success'})
 
-
-# @api.route('/group/status', methods=['POST'])
-# @json_required
-# @login_required
-# def create_group_status
-
 @api.route('/activity', methods=['POST'])
 @json_required
 @login_required
@@ -143,7 +137,7 @@ def get_activity():
        参数: id
     2. 获取团体发布的活动(时间序)
        参数: group_id, offset可选, default=0
-    3. 获取活动(热门序), 
+    3. 获取活动(热门序),
        参数: type=hot, offset可选, default=0
     """
     # 1.
@@ -157,7 +151,7 @@ def get_activity():
         if a is None:
             return not_found('找不到该活动')
         return jsonify(a.to_json())
-    
+
     # 2.
     if group_id != -1:
         group = Group.query.get(group_id)

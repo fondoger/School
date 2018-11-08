@@ -106,6 +106,7 @@ def get_public_timeline():
     offset = request.args.get('offset', 0, type=int)
     key = Keys.public_timeline
     datas = rd.zrevrange(key, offset, offset + limit - 1)
+    print(offset, limit, datas);
     items = [ d.decode() for d in datas ]
     status_ids = []
     article_ids = []
@@ -117,7 +118,7 @@ def get_public_timeline():
         else:
             raise Exception("No such type")
     statuses = Cache.multiget_status_json(status_ids)
-    articles = []
+    articles = Cache.multiget_article_json(article_ids)
     res_map = {}
     for s in statuses:
         item_key = Keys.timeline_status_item.format(s['id'])
