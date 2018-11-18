@@ -137,6 +137,7 @@ def get_status():
     type = request.args.get('type', '')
     user_id = request.args.get('user_id', -1, type=int)
     group_id = request.args.get('group_id', -1, type=int)
+    only_with_comment = request.args.get('only_with_comment', "")
     topic = request.args.get('topic', "")
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 10, type=int)
@@ -165,10 +166,9 @@ def get_status():
         return jsonify(ss)
 
     if type == 'post':
-        group = Group.query.get(group_id)
-        if group is None:
-            return not_found('找不到该团体')
-        ss = Status.query.filter_by(group=group, type_id=Status.TYPES['GROUP_POST'])
+        ss = Status.query.filter_by(type_id=Status.TYPES['GROUP_POST'])
+        if group_id != -1:
+            ss = ss.filter_by(group_id=group_id)
         ss = ss.order_by(Status.timestamp.desc())
         ss = ss.offset(offset).limit(limit)
         ss = [s.to_json() for s in ss]
