@@ -3,10 +3,11 @@ from flask import request, g, jsonify, url_for
 from . import api
 from .utils import login_required, json_required
 from .errors import forbidden, unauthorized, bad_request, not_found
-from app import db, rank
+from app import db, rd, rank
 from app.models import *
 from sqlalchemy.sql import text
 import app.cache as Cache
+import app.cache.redis_keys as Keys
 
 TOPICREGEX = re.compile(r"#([\s\S]+?)#")
 
@@ -201,10 +202,14 @@ def get_status():
         result = db.engine.execute(text(sql2), UID=g.user.id,
                 LIMIT=limit, OFFSET=offset)
         result = list(result)
-        status_ids = [ item['id'] for item in result if item['kind'] == 0]
-        article_ids = [ item['id'] for item in result if item['kind'] == 1 ]
-        statuses = Status.query.filter(Status.id.in_(status_ids)).all()
-        articles = Article.query.filter(Article.id.in_(article_ids)).all()
+        status_ids = [ item['id'] for item in result
+                if item['kind'] == 0]
+        article_ids = [ item['id'] for item in result
+                if item['kind'] == 1 ]
+        statuses = Status.query.filter(Status.id.in_(
+            status_ids)).all()
+        articles = Article.query.filter(Article.id.in_(
+            article_ids)).all()
         res = statuses + articles
         res = sorted(res, key=lambda x: x.timestamp, reverse=True)
         res = [item.to_json() for item in res]
@@ -218,13 +223,31 @@ def get_status():
 
 
     if type == 'topic':
-        t = Topic.query.filter_by(topic=topic).first()
-        if t is None:
-            return jsonify([])
-        ss = t.statuses.order_by(Status.timestamp.desc())
-        ss = ss.offset(offset).limit(limit)
-        ss = [s.to_json() for s in ss]
-        return jsonify(ss)
+        key = Keys.topic_id.format(topic_name=topic)
+        data = rd.get(key)
+        if data != None:
+            topic_id = data.decode()
+        else:
+            t = Topic.query.filter_by(topic=topic).first()
+            if t is None:
+                return jsonify([])
+            topic_id = t.id
+            rd.set(key, topic_id, Keys.topic_id_expire)
+        sql = """
+            select status_id from status_topic
+            where topic_id=:TOPIC_ID
+            order by status_id DESC limit :LIMIT offset :OFFSET;
+        """
+        result = db.engine.execute(text(sql), TOPIC_ID=topic_id,
+                OFFSET=offset, LIMIT=limit)
+        result = list(result)
+        status_ids = [item['status_id'] for item in result]
+        statuses = Cache.multiget_status_json(status_ids)
+        res_map = {}
+        for s in statuses:
+            res_map[s['id']] = s
+        res = [ res_map[id] for id in status_ids ]
+        return jsonify(res)
 
     return bad_request('参数有误')
 

@@ -1,31 +1,65 @@
 from flask import request, g, jsonify
 from . import api
+from sqlalchemy.sql import text
 from .utils import login_required, json_required
 from .errors import forbidden, unauthorized, bad_request, not_found
 from .. import db
 from ..models import *
-
+import app.cache as Cache
+from app.utils.logger import logtimeusage, logfuncall
 
 @api.route('/article', methods=['GET'])
+@logtimeusage
 def get_article():
     """
     1. 通过id获取某篇文章
     2. 通过official_account_id获取若干个文章
+    3. 通过type=subsription获取关注的公众号所有文章
+    4. 通过type=all获取所有文章
+    其他参数:
+        limit
+        offset
     """
     id = request.args.get('id', -1, type=int)
     account_id = request.args.get('official_account_id', -1, type=int)
+    type = request.args.get('type', '')
     limit = request.args.get('limit', 10, type=int)
     offset = request.args.get('offset', 0, type=int)
     if id != -1:
         article = Article.query.get_or_404(id)
         return jsonify(article.to_json())
     if account_id != -1:
-        articles = Article.query.filter_by(official_account_id=account_id)
+        articles = Article.query.filter_by(
+                official_account_id=account_id)
         articles = articles.offset(offset).limit(limit)
         articles = [ a.to_json() for a in articles ]
         return jsonify(articles)
-    return bad_request('参数有误')
+    if type == 'all':
+        articles = Article.query.order_by(Article.timestamp)
+        articles = articles.offset(offset).limit(limit)
+        articles = [ a.to_json() for a in articles ]
+        return jsonify(articles)
+    if type == 'subscription':
+        if not hasattr(g, 'user'):
+            return forbidden("Please log in")
+        sql = """select id
+        from articles where official_account_id in (
+            select official_account_id from subscriptions as S
+            where S.users_id=:UID
+        ) order by timestamp DESC limit :LIMIT offset :OFFSET;
+        """
+        result = db.engine.execute(text(sql), UID=g.user.id,
+                LIMIT=limit, OFFSET=offset)
+        result = list(result)
+        article_ids = [ item['id'] for item in result ]
+        articles = Cache.multiget_article_json(article_ids)
+        res_map = {}
+        for a in articles:
+            res_map[a['id']] = a
+        res = [ res_map[id] for id in article_ids ]
+        return jsonify(res)
 
+    return bad_request('参数有误')
 
 @api.route('/official_account', methods=['GET'])
 def get_official_account():

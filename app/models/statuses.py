@@ -217,6 +217,7 @@ class Topic(db.Model):
 
     def to_json(self):
         return {
+            'id': self.id,
             'name': self.topic,
             "statuses": self.statuses.count(),
             "followers": 0,

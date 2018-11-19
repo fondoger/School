@@ -13,7 +13,6 @@ import app.cache.redis_keys as Keys
 from datetime import datetime
 
 
-@logtimeusage
 @logfuncall
 def _load_user_timeline(id):
     """

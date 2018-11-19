@@ -77,6 +77,12 @@ status_json_expire = 3600*24*7
 status_liked_users = "status:{}:liked_users"
 status_liked_users_expire = 3600*24*7
 
+"""
+Topic
+"""
+topic_id = "{topic_name}:id"
+topic_id_expire = 3600*24*30
+
 
 """
 Group
