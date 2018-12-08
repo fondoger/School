@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_redis import FlaskRedis
 from flask_apscheduler import APScheduler
 from flask_login import LoginManager
+from flask_cors import CORS
 from app.algorithm.rank import Rank
 from config import config
 from app.task import add_init_jobs
@@ -27,6 +28,8 @@ def create_app(config_name):
     else:
         print("create app in non-debug mode.")
 
+    # TODO: remove this later
+    CORS(app)
     # init flask extensions
     db.init_app(app)
     # Do not use decode_responses=True here,
