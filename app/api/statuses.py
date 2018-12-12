@@ -108,6 +108,10 @@ def get_status():
             type: group_status,
             group_id:
         }
+    2. 获取用户动态(时间序)
+        params = {
+            type: status,
+        }
     3. 获取团体帖子(热门序)
         params = {
             type: post,
@@ -162,6 +166,13 @@ def get_status():
             return not_found('找不到该团体')
         ss = Status.query.filter_by(group=group, type_id=Status.TYPES['GROUP_STATUS'])
         ss = ss.order_by(Status.timestamp.desc())
+        ss = ss.offset(offset).limit(limit)
+        ss = [s.to_json() for s in ss]
+        return jsonify(ss)
+
+    if type == "status":
+        ss = Status.query.filter_by(type_id=Status.TYPES['USER_STATUS'])
+        ss = ss.order_by(Status.id.desc())
         ss = ss.offset(offset).limit(limit)
         ss = [s.to_json() for s in ss]
         return jsonify(ss)
