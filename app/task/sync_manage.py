@@ -43,7 +43,7 @@ def resume_next_job(job_id_prefix, current_job_id=None):
 
 def add_sync_jobs(worker_wrapper, account_info_file, interval):
     from app import scheduler
-    with open(account_info_file) as f:
+    with open(account_info_file, "rb") as f:
         accounts = json.load(f)
         resumed = False
         for account_info in accounts:

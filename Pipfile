@@ -1,12 +1,12 @@
 [[source]]
-url = "https://pypi.org/simple"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
 name = "pypi"
 verify_ssl = true
 
 [dev-packages]
 
 [requires]
-python_version = "3.5"
+python_version = "3.7"
 
 [packages]
 flask = "*"
@@ -19,3 +19,8 @@ flask-migrate = "*"
 forgerypy = "*"
 requests = "*"
 flask-httpauth = "*"
+redis = "*"
+hiredis = "*"
+flask-redis = "*"
+beautifulsoup4 = "*"
+

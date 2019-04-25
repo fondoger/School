@@ -6,3 +6,7 @@ __pycache__
 migrations/
 # redis store
 *.rdb
+
+# Editors & IDEs
+.vscode/
+.idea/
