@@ -75,7 +75,7 @@ class BUAAArt:
         count = 0
         segs = []
         for p in main.find_all("p"):
-            t = p.get_text().strip()
+            t = p.get_text().replace('\n', ' ').strip()
             if not t:
                 continue;
             segs.append(t)

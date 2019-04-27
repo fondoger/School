@@ -3,10 +3,11 @@ from flask import request, g, jsonify, url_for
 from . import api
 from .utils import login_required, json_required
 from .errors import forbidden, unauthorized, bad_request, not_found
-from app import db, rank
+from app import db, rd, rank
 from app.models import *
 from sqlalchemy.sql import text
 import app.cache as Cache
+import app.cache.redis_keys as Keys
 
 TOPICREGEX = re.compile(r"#([\s\S]+?)#")
 
@@ -107,6 +108,10 @@ def get_status():
             type: group_status,
             group_id:
         }
+    2. 获取用户动态(时间序)
+        params = {
+            type: status,
+        }
     3. 获取团体帖子(热门序)
         params = {
             type: post,
@@ -137,6 +142,7 @@ def get_status():
     type = request.args.get('type', '')
     user_id = request.args.get('user_id', -1, type=int)
     group_id = request.args.get('group_id', -1, type=int)
+    only_with_comment = request.args.get('only_with_comment', "")
     topic = request.args.get('topic', "")
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 10, type=int)
@@ -164,11 +170,17 @@ def get_status():
         ss = [s.to_json() for s in ss]
         return jsonify(ss)
 
+    if type == "status":
+        ss = Status.query.filter_by(type_id=Status.TYPES['USER_STATUS'])
+        ss = ss.order_by(Status.id.desc())
+        ss = ss.offset(offset).limit(limit)
+        ss = [s.to_json() for s in ss]
+        return jsonify(ss)
+
     if type == 'post':
-        group = Group.query.get(group_id)
-        if group is None:
-            return not_found('找不到该团体')
-        ss = Status.query.filter_by(group=group, type_id=Status.TYPES['GROUP_POST'])
+        ss = Status.query.filter_by(type_id=Status.TYPES['GROUP_POST'])
+        if group_id != -1:
+            ss = ss.filter_by(group_id=group_id)
         ss = ss.order_by(Status.timestamp.desc())
         ss = ss.offset(offset).limit(limit)
         ss = [s.to_json() for s in ss]
@@ -183,7 +195,7 @@ def get_status():
 
     if type == 'timeline':
         ### TODO: with entities might be useful here
-        if g.user.is_anonymous:
+        if not hasattr(g, 'user'):
             return jsonify([])
         sql2 = """
         select * from (
@@ -201,10 +213,14 @@ def get_status():
         result = db.engine.execute(text(sql2), UID=g.user.id,
                 LIMIT=limit, OFFSET=offset)
         result = list(result)
-        status_ids = [ item['id'] for item in result if item['kind'] == 0]
-        article_ids = [ item['id'] for item in result if item['kind'] == 1 ]
-        statuses = Status.query.filter(Status.id.in_(status_ids)).all()
-        articles = Article.query.filter(Article.id.in_(article_ids)).all()
+        status_ids = [ item['id'] for item in result
+                if item['kind'] == 0]
+        article_ids = [ item['id'] for item in result
+                if item['kind'] == 1 ]
+        statuses = Status.query.filter(Status.id.in_(
+            status_ids)).all()
+        articles = Article.query.filter(Article.id.in_(
+            article_ids)).all()
         res = statuses + articles
         res = sorted(res, key=lambda x: x.timestamp, reverse=True)
         res = [item.to_json() for item in res]
@@ -218,13 +234,31 @@ def get_status():
 
 
     if type == 'topic':
-        t = Topic.query.filter_by(topic=topic).first()
-        if t is None:
-            return jsonify([])
-        ss = t.statuses.order_by(Status.timestamp.desc())
-        ss = ss.offset(offset).limit(limit)
-        ss = [s.to_json() for s in ss]
-        return jsonify(ss)
+        key = Keys.topic_id.format(topic_name=topic)
+        data = rd.get(key)
+        if data != None:
+            topic_id = data.decode()
+        else:
+            t = Topic.query.filter_by(topic=topic).first()
+            if t is None:
+                return jsonify([])
+            topic_id = t.id
+            rd.set(key, topic_id, Keys.topic_id_expire)
+        sql = """
+            select status_id from status_topic
+            where topic_id=:TOPIC_ID
+            order by status_id DESC limit :LIMIT offset :OFFSET;
+        """
+        result = db.engine.execute(text(sql), TOPIC_ID=topic_id,
+                OFFSET=offset, LIMIT=limit)
+        result = list(result)
+        status_ids = [item['status_id'] for item in result]
+        statuses = Cache.multiget_status_json(status_ids)
+        res_map = {}
+        for s in statuses:
+            res_map[s['id']] = s
+        res = [ res_map[id] for id in status_ids ]
+        return jsonify(res)
 
     return bad_request('参数有误')
 

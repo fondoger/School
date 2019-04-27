@@ -1,6 +1,6 @@
 from flask import g, current_app
 from datetime import datetime
-from .. import db
+from app import db, rd
 from .users import User
 from random import randint
 from sqlalchemy import event
@@ -46,9 +46,9 @@ class OfficialAccount(db.Model):
     @staticmethod
     def process_json(json_account):
         import app.cache as Cache
-        json_account['followed_by_me'] = Cache.is_account_followed_by(
-                json_account['id'], g.user.id) \
-                if not g.user.is_anonymous else False
+        json_account['followed_by_me'] = Cache.is_account_followed_by(\
+                json_account['id'], g.user.id) if \
+                hasattr(g, 'user') else False
         return json_account
 
     def to_json(self, cache=False):

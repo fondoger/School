@@ -29,6 +29,7 @@ def is_status_liked_by(id: IntLike, other_id: IntLike) -> bool:
         _cache_liked_users(id)
     return rd.sismember(key, other_id)
 
+@logfuncall
 def cache_status_json(status_json):
     """ Cache unprocessed status_json to redis """
     key = Keys.status_json.format(status_json['id'])
@@ -36,7 +37,9 @@ def cache_status_json(status_json):
     rd.set(key, data, ex=Keys.status_json_expire)
 
 @logfuncall
-def get_status_json(id: IntLike, only_from_cache=False) -> dict:
+def get_status_json(id: IntLike,
+        only_from_cache=False,
+        process_json=True) -> dict:
     """
     Geturn processed status_json
 
@@ -50,15 +53,22 @@ def get_status_json(id: IntLike, only_from_cache=False) -> dict:
     if data:    # hit in redis cache
         result = json.loads(data.decode())
         rd.expire(key, Keys.status_json_expire)
-        return Status.process_json(result)
+        if process_json:
+            return Status.process_json(result)
+        return result
     if only_from_cache:
         return None
+    print("Can't load status {} from redis".format(id))
+    print("Try to load from mysql")
     status = Status.query.get(id)
     if status == None:
+        print("Can't load status {} from mysql".format(id))
         return None
     result = status.to_json(cache=True)
     cache_status_json(result)
-    return Status.process_json(result)
+    if process_json:
+        return Status.process_json(result)
+    return result
 
 @logfuncall
 def multiget_status_json(ids: List[IntLike]) -> List['Status']:

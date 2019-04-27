@@ -3,7 +3,7 @@ from flask import g, jsonify
 from flask_httpauth import HTTPBasicAuth
 from . import api
 from .errors import unauthorized
-from ..models import User, AnonymousUser
+from app.models import User
 
 auth = HTTPBasicAuth()
 
@@ -17,7 +17,6 @@ def verify_user(email_or_token, password):
     '''
     # g.token_used for get_token()
     if email_or_token == '':
-        g.user = AnonymousUser()
         return True
     if password == '':
         g.user = User.verify_auth_token(email_or_token)
@@ -51,7 +50,7 @@ def get_token():
     # if expired:
     #       firstly, send a request to get contents via username/password
     #       secondly, send aother request get new token via username/password
-    if g.user.is_anonymous or g.token_used:
+    if not g.user or g.token_used:
         return unauthorized('Invalid credentials')
     return jsonify({'user':g.user.to_json(), 'token': g.user.generate_auth_token(
         expiration=3600*24*365), 'expiration': 3600*24*365})

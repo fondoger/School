@@ -5,7 +5,7 @@ from .errors import unauthorized, bad_request
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if g.user.is_anonymous:
+        if not hasattr(g, 'user'):
             return unauthorized('@login_required, 请登陆')
         return f(*args, **kwargs)
     return decorated_function

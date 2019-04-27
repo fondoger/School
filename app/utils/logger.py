@@ -1,15 +1,17 @@
 from flask import current_app
+from functools import wraps
 import timeit
 
 def logfuncall(func):
+    @wraps(func)
     def wrapper(*args, **kwargs):
         if current_app.config['DEBUG']:
             print("[LOG]Function called:", func.__name__ + "()", args, kwargs)
         return func(*args, **kwargs)
-
     return wrapper
 
 def logtimeusage(func):
+    @wraps(func)
     def wrapper(*args, **kwargs):
         if not current_app.config['DEBUG']:
             return func(*args, **kwargs)

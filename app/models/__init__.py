@@ -9,7 +9,9 @@ from .official_accounts import OfficialAccount
 from .articles import Article, ArticleReply
 
 
+"""
 from flask_login import AnonymousUserMixin
 class AnonymousUser(AnonymousUserMixin):
     pass
+"""
 

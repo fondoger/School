@@ -77,6 +77,12 @@ status_json_expire = 3600*24*7
 status_liked_users = "status:{}:liked_users"
 status_liked_users_expire = 3600*24*7
 
+"""
+Topic
+"""
+topic_id = "{topic_name}:id"
+topic_id_expire = 3600*24*30
+
 
 """
 Group
@@ -115,13 +121,13 @@ Task Queue
 # Redis List
 timeline_events_queue = "timeline_events"
 
-status_updated = "status_updated:{}"
+status_updated = "status_updated:{status_id}:{user_id}"
 status_updated_prefix = "status_updated"
 status_deleted = "status_deleted:{status_id}:{user_id}"
 status_deleted_prefix = "status_deleted"
-article_updated = "article_updated:{}"
+article_updated = "article_updated:{article_id}:{account_id}"
 article_updated_prefix = "article_updated"
-article_deleted = "article_deleted:{article_id}:{user_id}"
+article_deleted = "article_deleted:{article_id}:{account_id}"
 article_deleted_prefix = "article_deleted"
 # A long time no-logged-in user comes back
 # Insert this to right of the queue for priority

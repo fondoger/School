@@ -11,7 +11,6 @@ from app.models import User, Status, Group, OfficialAccount
 IntLike = Union[int, str]
 
 
-
 def _cache_account_subscribers(id: IntLike):
     key = Keys.official_account_subscribers.format(id)
     sql = """
@@ -29,6 +28,16 @@ def is_account_followed_by(id: IntLike, user_id: IntLike) -> bool:
     if not rd.exists(key):
         _cache_account_subscribers(id)
     return rd.sismember(key, user_id)
+
+def get_subscriber_ids(id: IntLike):
+    key = Keys.official_account_subscribers.format(id)
+    ids = rd.smembers(key)
+    if not ids:
+        _cache_account_subscribers(id)
+        ids = rd.smembers(key)
+    rd.expire(key, Keys.official_account_subscribers_expire)
+    ids = [ t.decode() for t in ids ]
+    return ids
 
 def cache_account_json(account_json):
     """ Cache unprocessed account_json to redis """
