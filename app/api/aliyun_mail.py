@@ -6,6 +6,8 @@ import hashlib
 import uuid
 import requests
 
+
+
 ActivationSubject = "欢迎注册，请验证您的邮箱"
 
 ActivationText = """尊敬的用户，您好！

@@ -9,7 +9,7 @@ import requests
 # 使用时需要根据自己配置与需求提供参数 key secret uri method
 key = 'fondoger'
 secret = '97eef486892c0b66f08a3228ebf676a3'
-#secret = hashlib.md5('woshiwang2'.encode()).hexdigest()
+#secret = hashlib.md5('操作员密码'.encode()).hexdigest()
 
 
 def httpdate_rfc1123(dt=None):

@@ -20,7 +20,7 @@ python manage.py db init
 
 **本地运行**
 
-```
+```bash
 python manage.py runserver -h0.0.0.0 -p80
 ```
 
@@ -40,11 +40,17 @@ export flask_server_type="development"
 
 启动服务，推荐使用[Gunicorn](http://gunicorn.org/)，步骤如下：
 
-```
-gunicorn -w 3 manage:app -b 0.0.0.0:80
+```bash
+gunicorn -w 3 manage:app -b 0.0.0.0:8000
 ```
 
-由于暂时基本没有静态文件的访问需求，故没有使用Nginx服务器。
+第三步：
+
+配置nginx，转发80端口请求到gunicorn:
+
+```bash
+sudo ln -s deployment/nginx /etc/nginx/sites-enabled/mysitename.conf
+```
 
 API设计及文档
 -------

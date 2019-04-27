@@ -6,19 +6,19 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 class Config:
     DEBUG = True
 
-    ### For sqlalchemy
+    # For sqlalchemy
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data-test.sqlite')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = '123'
     TRAP_BAD_REQUEST_ERRORS = False # For restful api
     TRAP_HTTP_EXCEPTIONS = False
 
-    ### For Flask-Redis
+    # For Flask-Redis
     REDIS_URL = 'redis://localhost:6379/0'
-    ### For Flask-RQ2
+    # For Flask-RQ2
     RQ_REDIS_URL = REDIS_URL
 
-    ### For APScheduler
+    # For APScheduler
     SCHEDULER_API_ENABLED = True
     SCHEDULER_API_PREFIX = "/t"
     SCHEDULER_JOBSTORES = {
@@ -32,8 +32,6 @@ class Config:
     @staticmethod
     def init_app(app):
         import logging
-        from logging import StreamHandler
-        #file_handler = StreamHandler()
         file_handler = logging.FileHandler("app.log")
         file_handler.setLevel(logging.DEBUG)
         app.logger.addHandler(file_handler)

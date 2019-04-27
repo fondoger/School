@@ -18,6 +18,7 @@ login_manager.session_protection = None
 login_manager.login_view = 'api.login'
 rank = Rank()
 
+
 def create_app(config_name):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
@@ -34,7 +35,7 @@ def create_app(config_name):
     rd.init_app(app)
     login_manager.init_app(app)
     task.init_app(app)
-    scheduler.init_app(app) # access scheduler from app.scheduler
+    scheduler.init_app(app)  # access scheduler from app.scheduler
 
     """
     Running in gunicorn:
@@ -43,8 +44,8 @@ def create_app(config_name):
     Read: https://stackoverflow.com/questions/16053364
     """
     if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-	# prevents scheduler start twice (only in debug mode)
-	# https://stackoverflow.com/questions/14874782
+        # prevents scheduler start twice (only in debug mode)
+        # https://stackoverflow.com/questions/14874782
         scheduler.start()
         add_init_jobs()
         atexit.register(lambda: scheduler.shutdown())
