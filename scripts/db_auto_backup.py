@@ -15,6 +15,7 @@ Crontab命令如下：
 0 3 1 * * /bin/bash/python3 /path/to/file.py --db=mysql
 """
 
+import sys
 import time
 import argparse
 import hmac
@@ -24,13 +25,15 @@ import logging
 import subprocess
 from datetime import datetime
 from requests import Session, Request
+from app.utils.aliyun_mail import AliyunEmail
 
-logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] - %(funcName)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] - %(funcName)s - %(message)s', stream=sys.stdout)
 # save log messages to file
 file_handler = logging.FileHandler('db_auto_backup.log')
 file_handler.setFormatter(logging.Formatter('[%(asctime)s] - %(funcName)s - %(message)s'))
 logging.getLogger().addHandler(file_handler)
 
+aliyun = AliyunEmail()
 
 # 设置又拍云信息
 # 注意: secret = hashlib.md5('操作员密码'.encode()).hexdigest()
@@ -112,7 +115,7 @@ class Upyun:
 
 def backup_mysql(expire_days=30):
     backup_file_name = datetime.now().strftime('mysql-autobackup-%Y-%m-%d-%H:%M:%S.sql.gz')
-    cmd = "mysqldump -u{user} -p{password} {db_name} | gzip > {output}".format(
+    cmd = "mysqldump -u{user} -p'{password}' {db_name} | gzip > {output}".format(
         user=DB_USER, password=DB_PASSWORD, db_name=DB_DATABASE, output=backup_file_name)
     try:
         logging.info("executing command: %s" % cmd)
@@ -122,6 +125,7 @@ def backup_mysql(expire_days=30):
         logging.info("backup Success!")
     except:
         logging.exception("backup failed!")
+        sys.exit(1)
 
 
 def backup_redis(expire=30):
@@ -155,10 +159,11 @@ def backup_redis(expire=30):
         save_and_verify()
         Upyun.upload(redis_dump_path, backup_file_name, expire)
         logging.info("backup success!")
-        exit(0)
-    except:
+    except Exception as e:
         logging.exception("backup failed!")
-        exit(1)
+        aliyun.send_email('1075004549@qq.com', subject='【社交北航】自动备份失败',
+                          text_body="%s, 详细信息请查看日志" % str(e))
+        sys.exit(1)
 
 
 if __name__ == '__main__':
@@ -172,3 +177,4 @@ if __name__ == '__main__':
         backup_redis(args.expire_days)
     elif args.db == 'mysql':
         backup_mysql(args.expire_days)
+    sys.exit(0)

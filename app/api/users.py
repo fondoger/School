@@ -1,15 +1,12 @@
 import re
-from flask import request, current_app, jsonify, g, url_for
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from flask import request, jsonify, g, url_for
 from . import api
 from .utils import login_required, json_required
-from .aliyun_mail import AliyunEmail
-from .authentication import auth
-from .errors import bad_request, unauthorized, forbidden, not_found, internal_error
+from app.utils.aliyun_mail import AliyunEmail
+from .errors import bad_request, not_found, internal_error
 from app import db
 from app.models import *
 import app.cache as Cache
-import app.cache.redis_keys as Keys
 from sqlalchemy import func
 
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
@@ -202,7 +199,7 @@ def get_user_groups():
 @api.route('/user/waiting', methods=['POST'])
 @json_required
 def creat_waiting_user():
-    """ 缓存用户信息并发送验证码到邮箱 """
+    """缓存用户信息并发送验证码到邮箱"""
 
     email = request.json.get('email', '')
     password = request.json.get('password', '')
@@ -224,7 +221,20 @@ def creat_waiting_user():
     db.session.add(wu)
     db.session.commit()
 
-    if aliyun.sendActivationEmail(email, wu.verification_code):
+    subject = "欢迎注册，请验证您的邮箱"
+
+    text_body = """尊敬的用户，您好！
+
+验证码： {code} 
+(15分钟内有效)
+
+您正在使用该邮箱注册某北航社交平台，我们需要验证这是您的邮箱，如果这不是您的操作，请忽略该邮件。
+
+系统发信, 请勿回复
+服务邮箱：service@fondoger.cn
+"""
+
+    if aliyun.send_email(email, subject, text_body.format(code=wu.verification_code)):
         return jsonify({"message": "email success"})
     else:
         return internal_error("failed sending email")
@@ -242,6 +252,7 @@ def user_first_created(u):
 @api.route('/user', methods=['POST'])
 @json_required
 def create_user():
+    """创建用户（已有验证码）"""
     email = request.json.get('email', '')
     verification_code = request.json.get('verification_code', -1)
     wu = WaitingUser.verify(email, verification_code)
