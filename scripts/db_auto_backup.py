@@ -1,15 +1,22 @@
 # -*- coding: UTF-8 -*-
 
-
 """本脚本用于定时备份mysql数据库
 
 将mysqldump导出的数据存储到又拍云上。
 
-每晚凌晨3点备份数据，Crontab命令如下：
-0 3 * * * /bin/bash/python3 /path/to/file.py
+Crontab命令如下：
+# 每月2到31号，每晚凌晨3点备份mysql数据，过期时间为30天
+0 3 2-31 * * /bin/bash/python3 /path/to/file.py --db=redis -e30
+# 每月1号凌晨3点备份mysql数据，无过期时间
+0 3 1 * * /bin/bash/python3 /path/to/file.py --db=redis
+# 每月2到31号，每晚凌晨3点备份mysql数据，过期时间为30天
+0 3 2-31 * * /bin/bash/python3 /path/to/file.py --db=mysql -e30
+# 每月1号凌晨3点备份mysql数据，无过期时间
+0 3 1 * * /bin/bash/python3 /path/to/file.py --db=mysql
 """
 
-
+import time
+import argparse
 import hmac
 import base64
 import hashlib
@@ -18,7 +25,11 @@ import subprocess
 from datetime import datetime
 from requests import Session, Request
 
-logging.basicConfig(filename="db_auto_backup.log", level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] - %(funcName)s - %(message)s')
+# save log messages to file
+file_handler = logging.FileHandler('db_auto_backup.log')
+file_handler.setFormatter(logging.Formatter('[%(asctime)s] - %(funcName)s - %(message)s'))
+logging.getLogger().addHandler(file_handler)
 
 
 # 设置又拍云信息
@@ -84,7 +95,6 @@ class Upyun:
         uri = '/{service}/{target}'.format(service=SERVICE_NAME, target=target_name)
         method = 'PUT'
         signature = Upyun._sign(OPERATOR_NAME, OPERATOR_SECRET, method, uri, date, md5=file_md5)
-        print(signature)
         headers = {
             'Authorization': signature,
             'Date': date,
@@ -100,17 +110,65 @@ class Upyun:
             raise Exception("Can't upload file via API, status=%d, response: %s" % (status, content))
 
 
-def main():
-    backup_file_name = datetime.now().strftime('autobackup-%Y-%m-%d-%H:%M:%S.mysql-db.gz')
+def backup_mysql(expire_days=30):
+    backup_file_name = datetime.now().strftime('mysql-autobackup-%Y-%m-%d-%H:%M:%S.sql.gz')
     cmd = "mysqldump -u{user} -p{password} {db_name} | gzip > {output}".format(
         user=DB_USER, password=DB_PASSWORD, db_name=DB_DATABASE, output=backup_file_name)
     try:
+        logging.info("executing command: %s" % cmd)
         subprocess.run(cmd, check=True)
-        Upyun.upload(backup_file_name, backup_file_name, 30)
+        logging.info("uploading file to upyun: %s" % backup_file_name)
+        Upyun.upload(backup_file_name, backup_file_name, expire_days)
+        logging.info("backup Success!")
     except:
-        logging.exception("备份失败！")
+        logging.exception("backup failed!")
+
+
+def backup_redis(expire=30):
+
+    def save_and_verify():
+        """Use background save, and check status"""
+        prev_lastsave = subprocess.check_output(['redis-cli', 'lastsave']).decode()
+        logging.info("execute cmd: redis-cli bgsave")
+        subprocess.run(['redis-cli', 'bgsave'], check=True)
+        count = 0
+        while count < 30:
+            count += 1
+            time.sleep(1)
+            logging.info("checking dumping status...%d" % count)
+            if prev_lastsave != subprocess.check_output(['redis-cli', 'lastsave']).decode():
+                logging.info('successfully dumped redis database!')
+                return
+        raise Exception("can't verify redis bgsave status")
+
+    def get_dump_path():
+        """Get redis's dump.rdb path via commands"""
+        outputs = subprocess.check_output('redis-cli config get "*" | grep -e "dbfilename" -e "dir" -A1',
+                                          shell=True).decode().split("\n")
+        filename, directory = outputs[1], outputs[4]
+        return directory + '/' + filename
+
+    redis_dump_path = get_dump_path()
+    backup_file_name = datetime.now().strftime('redis-autobackup-%Y-%m-%d-%H:%M:%S.rdb')
+
+    try:
+        save_and_verify()
+        Upyun.upload(redis_dump_path, backup_file_name, expire)
+        logging.info("backup success!")
+        exit(0)
+    except:
+        logging.exception("backup failed!")
+        exit(1)
 
 
 if __name__ == '__main__':
-    main()
-    exit(0)
+    parser = argparse.ArgumentParser(description='This script is used to backup redis and mysql databases.')
+    parser.add_argument('--db', help='database type, redis or mysql',
+                        choices=['redis', 'mysql'], required=True)
+    parser.add_argument("-e", "--expire-days", help="how long this backup will be kept, days",
+                        type=int)
+    args = parser.parse_args()
+    if args.db == 'redis':
+        backup_redis(args.expire_days)
+    elif args.db == 'mysql':
+        backup_mysql(args.expire_days)
