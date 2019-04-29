@@ -6,13 +6,13 @@
 
 Crontab命令如下：
 # 每月2到31号，每晚凌晨3点备份mysql数据，过期时间为30天
-0 3 2-31 * * /bin/bash/python3 /path/to/file.py --db=redis -e30
+0 3 2-31 * * /usr/bin/python3 /path/to/file.py --db=redis -e30
 # 每月1号凌晨3点备份mysql数据，无过期时间
-0 3 1 * * /bin/bash/python3 /path/to/file.py --db=redis
+0 3 1 * * /usr/bin/python3 /path/to/file.py --db=redis
 # 每月2到31号，每晚凌晨3点备份mysql数据，过期时间为30天
-0 3 2-31 * * /bin/bash/python3 /path/to/file.py --db=mysql -e30
+0 3 2-31 * * /usr/bin/python3 /path/to/file.py --db=mysql -e30
 # 每月1号凌晨3点备份mysql数据，无过期时间
-0 3 1 * * /bin/bash/python3 /path/to/file.py --db=mysql
+0 3 1 * * /usr/bin/python3 /path/to/file.py --db=mysql
 """
 
 import os
@@ -31,7 +31,7 @@ from aliyun_email import AliyunEmail
 
 logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] - %(funcName)s - %(message)s', stream=sys.stdout)
 # save log messages to file
-log_path = os.path.join(os.path.relpath(__file__), 'db_auto_backup.log')
+log_path = os.path.join(os.path.dirname(os.path.relpath(__file__)), 'db_auto_backup.log')
 file_handler = logging.FileHandler(log_path)
 file_handler.setFormatter(logging.Formatter('[%(asctime)s] - %(funcName)s - %(message)s'))
 logging.getLogger().addHandler(file_handler)
@@ -129,7 +129,7 @@ def backup_mysql(expire_days=30):
     except Exception as e:
         logging.exception("backup failed!")
         aliyun.send_email('1075004549@qq.com', subject='【社交北航】自动备份失败',
-                          text_body="%s, 详细信息请查看日志" % str(e))
+                          text_body="MySQL数据库备份失败，错误信息：%s, 详细信息请查看日志" % str(e))
         sys.exit(1)
 
 
@@ -167,7 +167,7 @@ def backup_redis(expire=30):
     except Exception as e:
         logging.exception("backup failed!")
         aliyun.send_email('1075004549@qq.com', subject='【社交北航】自动备份失败',
-                          text_body="%s, 详细信息请查看日志" % str(e))
+                          text_body="Redis数据库备份失败，错误信息：%s, 详细信息请查看日志" % str(e))
         sys.exit(1)
 
 
