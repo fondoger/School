@@ -3,7 +3,6 @@ from flask_script import Manager, Shell
 from flask_migrate import Migrate, MigrateCommand
 from app.models import *
 from app import models
-import sys
 import os
 
 server_type = None
@@ -22,6 +21,7 @@ def make_shell_context():
                 User=User, Status=Status, Topic=Topic,
                 Group=Group, GroupMembership=GroupMembership,
                 Activity=Activity, OfficialAccount=OfficialAccount,)
+
 manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
 

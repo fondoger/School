@@ -33,19 +33,21 @@ def create_app(config_name):
     # because we need to store/read bytes data
     rd.init_app(app)
     login_manager.init_app(app)
-    from app import task
-    task.init_app(app)
     scheduler.init_app(app)  # access scheduler from app.scheduler
 
-    scheduler.start()
-    task.add_init_jobs()
-    atexit.register(lambda: scheduler.shutdown())
-    print("Scheduler started...")
+    if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        # The app is not in debug mode or we are in the reloaded process
+        scheduler.start()
+        from app import task
+        task.init_app(app)
+        task.add_init_jobs()
+        atexit.register(lambda: scheduler.shutdown())
+        print("Scheduler started...")
 
-    # start timeline task
-    from app.task import timeline_task
-    timeline_task.init_app(app)
-    timeline_task.start()
+        # start timeline task
+        from app.task import timeline_task
+        timeline_task.init_app(app)
+        timeline_task.start()
 
     # Register Blueprints
     from .api import api as api_blueprint

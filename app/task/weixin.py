@@ -1,10 +1,6 @@
-import time
-import os
 import json
-import logging
 from requests import Session
 from datetime import datetime
-from functools import reduce
 from sqlalchemy.sql import exists
 from sqlalchemy import and_
 
@@ -14,7 +10,59 @@ previous_run_time = {}
 
 
 class Weixin:
-    """
+    """从WeRss.app访问数据"""
+
+    def __init__(self, accountname, account_key):
+        self.accountname = accountname
+        self.session = Session()
+        self.url = 'https://cdn.werss.weapp.design/api/v1/feeds/%s.xml?type=json' % account_key
+
+    def sync(self):
+        from app import db
+        from app.models import Article, OfficialAccount
+        from . import app
+
+        print("Syncing WeXin %s..." % self.accountname)
+        articles = self.get_articles()
+        with app.app_context():
+            account = OfficialAccount.query.filter_by(
+                accountname=self.accountname).one()
+            new_articles = [
+                article for article in articles
+                if not db.session.query(exists().where(and_(
+                    Article.type_id == Article.TYPES['WEIXIN'],
+                    Article.extra_key == article['content_id']
+                ))).scalar()
+            ]
+            print("Found %d new in %d weixin articles" %
+                  (len(new_articles), len(articles)))
+            if len(new_articles) == 0:
+                return
+            for article in new_articles:
+                del article['content']
+                data = json.dumps(article, ensure_ascii=False)
+                article = Article(type="WEIXIN",
+                                  timestamp=self.get_timestamp(article['posted_at']),
+                                  extra_key=article['content_id'],
+                                  extra_url=article['url'],
+                                  extra_data=data,
+                                  extra_desc=article['title'][:64],
+                                  official_account=account)
+                db.session.add(article)
+            db.session.commit()
+
+    def get_articles(self):
+        res = self.session.get(self.url, timeout=5)
+        json_data = res.json()
+        return json_data['data']['list']
+
+    def get_timestamp(self, time_str):
+        return datetime.strptime(time_str[:-5] + "+0000",
+                                 "%Y-%m-%dT%H:%M:%S%z")
+
+
+class Weixin_deprecated:
+    """从即刻访问数据
     :var str account_id: id of OfficialAccount
     :var str jike_id: id of jike topic
     """
