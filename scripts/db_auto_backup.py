@@ -31,7 +31,7 @@ from aliyun_email import AliyunEmail
 
 logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] - %(funcName)s - %(message)s', stream=sys.stdout)
 # save log messages to file
-log_path = os.path.join(os.path.dirname(os.path.relpath(__file__)), 'db_auto_backup.log')
+log_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'db_auto_backup.log')
 file_handler = logging.FileHandler(log_path)
 file_handler.setFormatter(logging.Formatter('[%(asctime)s] - %(funcName)s - %(message)s'))
 logging.getLogger().addHandler(file_handler)
@@ -117,7 +117,7 @@ class Upyun:
 
 
 def backup_mysql(expire_days=30):
-    mysql_dump_path = os.path.dirname(os.path.relpath(__file__)) + '/' + 'mysql-data.sql.gz'
+    mysql_dump_path = os.path.dirname(os.path.realpath(__file__)) + '/' + 'mysql-data.sql.gz'
     backup_file_name = datetime.now().strftime('mysql-autobackup-%Y-%m-%d-%H:%M:%S.sql.gz')
     cmd = "mysqldump -u{user} -p'{password}' {db_name} | gzip > '{output}'".format(
         user=DB_USER, password=DB_PASSWORD, db_name=DB_DATABASE, output=mysql_dump_path)
