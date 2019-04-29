@@ -1,12 +1,9 @@
-from flask import g
-from app import db, rd
+from app import rd
 from typing import List, Union
-from sqlalchemy.sql import text
 import json
-import _pickle as pickle
 from . import redis_keys as Keys
 from app.utils.logger import logfuncall
-from app.models import *
+from app.models import Article
 
 IntLike = Union[str, int]
 
@@ -17,9 +14,10 @@ def cache_article_json(article_json):
     data = json.dumps(article_json, ensure_ascii=False)
     rd.set(key, data, ex=Keys.article_json_expire)
 
+
 def get_article_json(id: IntLike,
-        only_from_cache=False,
-        process_json=True) -> dict:
+                     only_from_cache=False,
+                     process_json=True) -> Union[dict, None]:
     """
     Get  article json by id
 
@@ -27,7 +25,7 @@ def get_article_json(id: IntLike,
     """
     key = Keys.article_json.format(id)
     data = rd.get(key)  # none is returned if not exists
-    if data != None:
+    if data is not None:
         json_article = json.loads(data.decode())
         rd.expire(key, Keys.article_json_expire)
         if not process_json:
@@ -36,13 +34,14 @@ def get_article_json(id: IntLike,
     if only_from_cache:
         return None
     article = Article.query.get(id)
-    if article == None:
+    if article is None:
         return None
     json_article = article.to_json(cache=True)
     cache_article_json(json_article)
     if not process_json:
         return json_article
     return Article.process_json(json_article)
+
 
 @logfuncall
 def multiget_article_json(ids: List[IntLike]) -> List['Article']:
@@ -57,7 +56,7 @@ def multiget_article_json(ids: List[IntLike]) -> List['Article']:
     # get from redis cache
     for index, id in enumerate(ids):
         article_json = get_article_json(id, only_from_cache=True)
-        if article_json != None:
+        if article_json is not None:
             articles.append(article_json)
         else:
             missed_ids.append(id)
@@ -70,10 +69,3 @@ def multiget_article_json(ids: List[IntLike]) -> List['Article']:
         cache_article_json(article_json)
         articles.append(Article.process_json(article_json))
     return articles
-
-
-
-
-
-
-

@@ -2,14 +2,15 @@ import re
 from flask import request, g, jsonify, url_for
 from . import api
 from .utils import login_required, json_required
-from .errors import forbidden, unauthorized, bad_request, not_found
+from .errors import forbidden, bad_request, not_found
 from app import db, rd, rank
-from app.models import *
+from app.models import Status, Group, StatusPicture, StatusReply, Topic, Article
 from sqlalchemy.sql import text
 import app.cache as Cache
 import app.cache.redis_keys as Keys
 
-TOPICREGEX = re.compile(r"#([\s\S]+?)#")
+TOPIC_REGEX = re.compile(r"#([\s\S]+?)#")
+
 
 @api.route('/status', methods=['POST'])
 @json_required
@@ -49,10 +50,10 @@ def create_status():
 
     s = None
     # 用户动态:
-    if type=='USER_STATUS':
+    if type == 'USER_STATUS':
         s = Status(type=type, user=g.user, text=text)
         # 检查话题
-        topics = list(set(TOPICREGEX.findall(text)))
+        topics = list(set(TOPIC_REGEX.findall(text)))
         for topic in topics:
             t = Topic.query.filter_by(topic=topic).first()
             if t is None:
@@ -60,24 +61,21 @@ def create_status():
             t.statuses.append(s)
             db.session.add(t)
 
-
     # 团体微博:
-    if type=='GROUP_STATUS':
+    if type == 'GROUP_STATUS':
         group = Group.query.get(group_id)
         if group is None:
             return bad_request('该团体不存在')
-        s = Status(type=type, user=g.user,
-                   group=group, text=text)
+        s = Status(type=type, user=g.user, group=group, text=text)
 
     # 团体帖子:
-    if type=='GROUP_POST':
+    if type == 'GROUP_POST':
         group = Group.query.get(group_id)
         if title == '':
             return bad_request('title empty')
         if group is None:
             return bad_request('该团体不存在')
-        s = Status(type=type, user=g.user,
-                   group=group, title=title, text=text)
+        s = Status(type=type, user=g.user, roup=group, title=title, text=text)
 
     if s is not None:
         for index, pic_url in enumerate(pics):
@@ -87,7 +85,7 @@ def create_status():
         db.session.commit()
         rank.push(s)
         return jsonify(s.to_json()), 201, \
-            {'Location': url_for('api.get_status', id=s.id, _external=True)}
+               {'Location': url_for('api.get_status', id=s.id, _external=True)}
 
     return bad_request('参数有误')
 
@@ -142,7 +140,6 @@ def get_status():
     type = request.args.get('type', '')
     user_id = request.args.get('user_id', -1, type=int)
     group_id = request.args.get('group_id', -1, type=int)
-    only_with_comment = request.args.get('only_with_comment', "")
     topic = request.args.get('topic', "")
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 10, type=int)
@@ -194,7 +191,7 @@ def get_status():
         return jsonify(ss)
 
     if type == 'timeline':
-        ### TODO: with entities might be useful here
+        # TODO: with entities might be useful here
         if not hasattr(g, 'user'):
             return jsonify([])
         sql2 = """
@@ -209,14 +206,14 @@ def get_status():
                 select official_account_id from subscriptions as S where S.users_id=:UID
             )
         ) as t order by timestamp DESC limit :LIMIT offset :OFFSET;
-        """ # `S.users_id` because there is a typo in column name
+        """  # `S.users_id` because there is a typo in column name
         result = db.engine.execute(text(sql2), UID=g.user.id,
-                LIMIT=limit, OFFSET=offset)
+                                   LIMIT=limit, OFFSET=offset)
         result = list(result)
-        status_ids = [ item['id'] for item in result
-                if item['kind'] == 0]
-        article_ids = [ item['id'] for item in result
-                if item['kind'] == 1 ]
+        status_ids = [item['id'] for item in result
+                      if item['kind'] == 0]
+        article_ids = [item['id'] for item in result
+                       if item['kind'] == 1]
         statuses = Status.query.filter(Status.id.in_(
             status_ids)).all()
         articles = Article.query.filter(Article.id.in_(
@@ -226,17 +223,15 @@ def get_status():
         res = [item.to_json() for item in res]
         return jsonify(res)
 
-
-    #if type == "trending":
-        #ids = rank.get_mixed()[offset:offset+limit]
-        #ss = [Status.query.get(id).to_json() for id in ids]
-        #return jsonify(ss)
-
+    # if type == "trending":
+    # ids = rank.get_mixed()[offset:offset+limit]
+    # ss = [Status.query.get(id).to_json() for id in ids]
+    # return jsonify(ss)
 
     if type == 'topic':
         key = Keys.topic_id.format(topic_name=topic)
         data = rd.get(key)
-        if data != None:
+        if data is not None:
             topic_id = data.decode()
         else:
             t = Topic.query.filter_by(topic=topic).first()
@@ -250,14 +245,14 @@ def get_status():
             order by status_id DESC limit :LIMIT offset :OFFSET;
         """
         result = db.engine.execute(text(sql), TOPIC_ID=topic_id,
-                OFFSET=offset, LIMIT=limit)
+                                   OFFSET=offset, LIMIT=limit)
         result = list(result)
         status_ids = [item['status_id'] for item in result]
         statuses = Cache.multiget_status_json(status_ids)
         res_map = {}
         for s in statuses:
             res_map[s['id']] = s
-        res = [ res_map[id] for id in status_ids ]
+        res = [res_map[id] for id in status_ids]
         return jsonify(res)
 
     return bad_request('参数有误')
@@ -266,7 +261,7 @@ def get_status():
 @api.route('/status', methods=['DELETE'])
 @login_required
 def delete_status():
-    """ 删除微博, 成功返回删除的id """
+    """删除微博, 成功返回删除的id"""
     id = request.args.get('id', -1, type=int)
     if id == -1:
         return bad_request('id empty')
@@ -282,6 +277,8 @@ def delete_status():
 """
 动态点赞API
 """
+
+
 @api.route('/status/like', methods=['POST'])
 @json_required
 @login_required
@@ -305,8 +302,7 @@ def create_status_like():
 @api.route('/status/like', methods=['DELETE'])
 @login_required
 def delete_status_like():
-    ''' 根据id取消点赞
-    '''
+    """根据动态id取消点赞"""
     id = request.args.get('id', -1, type=int)
     s = Status.query.get(id)
     if s is None:
@@ -322,6 +318,8 @@ def delete_status_like():
 """
 动态回复API
 """
+
+
 @api.route('/status/reply', methods=['POST'])
 @json_required
 @login_required
@@ -336,7 +334,7 @@ def create_status_reply():
     db.session.commit()
     rank.push(s)
     return jsonify(r.to_json()), 201, \
-        {'Location': url_for('api.get_status_reply', id=r.id, _external=True)}
+           {'Location': url_for('api.get_status_reply', id=r.id, _external=True)}
 
 
 @api.route('/status/reply', methods=['GET'])
@@ -372,8 +370,9 @@ def get_status_reply():
 @api.route('/status/reply', methods=['DELETE'])
 @login_required
 def delete_status_reply():
-    """ 删除微博, 成功返回删除的id """
-    # id // status_reply id
+    """删除微博评论, 成功返回删除的id
+    id: 评论的id
+    """
     id = request.args.get('id', -1, type=int)
     if id == -1:
         return bad_request('id empty')
@@ -388,11 +387,13 @@ def delete_status_reply():
 """
 回复点赞API
 """
+
+
 @api.route('/status/reply/like', methods=['POST'])
 @json_required
 @login_required
 def create_status_reply_like():
-    """根据回复id为其点赞
+    """根据评论id为其点赞
     json = {
         "id": 回复id
     }
@@ -410,8 +411,7 @@ def create_status_reply_like():
 @api.route('/status/reply/like', methods=['DELETE'])
 @login_required
 def delete_status_reply_like():
-    ''' 根据回复id取消点赞
-    '''
+    """根据评论id取消点赞"""
     id = request.args.get('id', -1, type=int)
     r = StatusReply.query.get_or_404(id)
     if g.user not in r.liked_users:
@@ -420,6 +420,7 @@ def delete_status_reply_like():
     db.session.add(r)
     db.session.commit()
     return jsonify({'id': r.id, 'message': 'delete success'})
+
 
 @api.route('/topic', methods=['GET'])
 def get_topic():

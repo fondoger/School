@@ -1,26 +1,22 @@
-from flask import g, current_app
+from flask import g
 from datetime import datetime
 from app import db, rd
-from .users import User
-from random import randint
 from sqlalchemy import event
-from sqlalchemy.ext.associationproxy import association_proxy
 from app.utils.logger import logfuncall
 from app.utils import to_http_date
 
-
 # many to many
-# Typo: `users_id` should be `user_id`, but it's not easy to recorrect it
+# Typo: `users_id` should be `user_id`, but it's not easy to correct it
 # As it won't influence my python code, so i decide to not change it
 article_likes = db.Table('article_likes',
-    db.Column('article_id', db.Integer, db.ForeignKey('articles.id'), primary_key=True),
-    db.Column('users_id', db.Integer, db.ForeignKey('users.id'), primary_key=True)
-)
+                         db.Column('article_id', db.Integer, db.ForeignKey('articles.id'), primary_key=True),
+                         db.Column('users_id', db.Integer, db.ForeignKey('users.id'), primary_key=True))
 # many to many
 article_reply_likes = db.Table('article_reply_likes',
-    db.Column('article_reply_id', db.Integer, db.ForeignKey('article_replies.id'), primary_key=True),
-    db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True)
-)
+                               db.Column('article_reply_id', db.Integer, db.ForeignKey('article_replies.id'),
+                                         primary_key=True),
+                               db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True))
+
 
 class ArticleReply(db.Model):
     __tablename__ = 'article_replies'
@@ -28,10 +24,8 @@ class ArticleReply(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    article_id = db.Column(db.Integer, db.ForeignKey('articles.id'),
-        nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'),
-        nullable=False)
+    article_id = db.Column(db.Integer, db.ForeignKey('articles.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     """ Relationships """
     liked_users = db.relationship('User', secondary=article_reply_likes, lazy='dynamic')
@@ -45,6 +39,7 @@ class ArticleReply(db.Model):
             'liked_by_me': g.user in self.liked_users,
             'timestamp': self.timestamp,
         }
+
 
 class Article(db.Model):
     __tablename__ = "articles"
@@ -64,19 +59,16 @@ class Article(db.Model):
 
     """
     id = db.Column(db.Integer, primary_key=True)
-    type_id = db.Column(db.Integer) # using type instead of type_id
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow,
-            nullable=False)
+    type_id = db.Column(db.Integer)  # using type instead of type_id
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     extra_url = db.Column(db.Text)
     extra_key = db.Column(db.String(32))
     extra_desc = db.Column(db.String(64))
     extra_data = db.Column(db.Text)
-    official_account_id = db.Column(db.Integer,
-        db.ForeignKey('official_accounts.id'), nullable=False)
+    official_account_id = db.Column(db.Integer, db.ForeignKey('official_accounts.id'), nullable=False)
 
     """ Relationships """
-    replies = db.relationship('ArticleReply', backref='article',
-        lazy='dynamic', cascade='all, delete-orphan')
+    replies = db.relationship('ArticleReply', backref='article', lazy='dynamic', cascade='all, delete-orphan')
     liked_users = db.relationship('User', secondary=article_likes, lazy='dynamic')
 
     @staticmethod
@@ -86,7 +78,7 @@ class Article(db.Model):
         t = Cache.get_official_account_json(i)
         article_json['official_account'] = t
         article_json['timestamp'] = to_http_date(
-                article_json['timestamp'])
+            article_json['timestamp'])
         article_json.pop("official_account_id")
         return article_json
 
@@ -128,6 +120,7 @@ class Article(db.Model):
             raise Exception("no such type")
         self.type_id = idx
 
+
 def _clear_redis_cache(instance: Article):
     import app.cache.redis_keys as Keys
     article_id = instance.id
@@ -135,6 +128,7 @@ def _clear_redis_cache(instance: Article):
         Keys.article_json.format(article_id),
     ]
     rd.delete(*keys_to_remove)
+
 
 @logfuncall
 @event.listens_for(Article, "after_insert")
@@ -144,10 +138,11 @@ def article_updated(mapper, connection, target):
     _clear_redis_cache(target)
     # add item to timeline queue
     timeline_item = Keys.article_updated.format(
-            article_id=target.id,
-            account_id=target.official_account_id)
+        article_id=target.id,
+        account_id=target.official_account_id)
     rd.lpush(Keys.timeline_events_queue, timeline_item)
     # TODO: Using Cache.cache_article_json() to reduce a sql query
+
 
 @logfuncall
 @event.listens_for(Article, "after_delete")
@@ -155,12 +150,6 @@ def article_delete(mapper, connection, target):
     import app.cache.redis_keys as Keys
     _clear_redis_cache(target)
     timeline_item = Keys.article_deleted.format(
-            article_id=target.id,
-            account_id=target.official_account_id)
+        article_id=target.id,
+        account_id=target.official_account_id)
     rd.lpush(Keys.timeline_events_queue, timeline_item)
-
-
-
-
-
-

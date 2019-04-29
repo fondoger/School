@@ -1,6 +1,6 @@
 from flask import jsonify, request
-from werkzeug.exceptions import HTTPException
 from . import api
+
 '''
     This module defines some functions that generate
     responses with error messages.
@@ -14,24 +14,23 @@ from . import api
     
 '''
 
+
 def bad_request(message):
-    ''' You requested a corret URL with incorret format 
-        or incorret data
-    '''
+    """You requested a correct URL with incorrect format or incorrect data"""
     response = jsonify({'error': 'bad request', 'message': message})
     response.status_code = 400
     return response
 
 
 def unauthorized(message):
-    '''We need to know who you are'''
+    """We need to know who you are"""
     response = jsonify({'error': 'unauthorized', 'message': message})
     response.status_code = 401
     return response
 
 
 def forbidden(message):
-    '''We know who you are and what you want, but you are not permitted'''
+    """We know who you are and what you want, but you are not permitted"""
     response = jsonify({'error': 'forbidden', 'message': message})
     response.status_code = 403
     return response
@@ -42,6 +41,7 @@ def not_found(message):
     response.status_code = 404
     return response
 
+
 def internal_error(message):
     response = jsonify({'error': 'not found', 'message': message})
     response.status_code = 500
@@ -49,8 +49,9 @@ def internal_error(message):
 
 
 @api.errorhandler(400)
-def errorHandler400(e):
+def error_handler_400(e):
     return bad_request(str(e))
+
 
 @api.app_errorhandler(404)
 @api.app_errorhandler(405)

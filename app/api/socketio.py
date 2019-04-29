@@ -4,10 +4,12 @@ from flask_socketio import emit
 
 clients = []
 
+
 @socketio.on('connect')
 def connected():
     clients.append(request.namespace)
     print("connected" + request.namespace)
+
 
 @socketio.on('message')
 def un_named_message(message, dd):
@@ -20,4 +22,3 @@ def disconnect():
     clients.remove(request.namespace)
     print("disconnected" + request.namespace)
     return "222"
-

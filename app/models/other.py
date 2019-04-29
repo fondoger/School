@@ -1,6 +1,5 @@
-from flask import g
-from datetime import datetime
 from .. import db
+
 
 class TempImage(db.Model):
     __tablename__ = 'temp_images'

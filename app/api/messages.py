@@ -1,11 +1,9 @@
 from flask import request, g, jsonify, url_for
-from datetime import datetime
 from . import api
 from .utils import login_required, json_required
-from .errors import forbidden, unauthorized, bad_request, not_found
+from .errors import forbidden, bad_request
 from .. import db
 from ..models import User, TextMessage, Message
-from sqlalchemy.sql import text
 from sqlalchemy import func
 
 
@@ -23,10 +21,8 @@ def create_message():
 
     text_message = TextMessage(ufrom_id=g.user.id, uto_id=uto.id, text=text)
     db.session.add(text_message)
-    message = Message(user=uto, text_message=text_message,
-        with_id=g.user.id)
-    message_send = Message(user=g.user, text_message=text_message,
-        with_id=uto.id, is_read=True)
+    message = Message(user=uto, text_message=text_message, with_id=g.user.id)
+    message_send = Message(user=g.user, text_message=text_message, with_id=uto.id, is_read=True)
     db.session.add(message)
     db.session.add(message_send)
     db.session.commit()
@@ -65,9 +61,8 @@ def get_message():
         messages = [m.to_json() for m in messages]
         return jsonify(messages)
 
-
     # Not working due to `ONLY_FULL_GROUP_BY` in mysql
-    #messages = g.user.messages.order_by(Message.id.desc()).group_by(Message.with_id)
+    # messages = g.user.messages.order_by(Message.id.desc()).group_by(Message.with_id)
     subquery = db.session.query(func.max(Message.id)).filter_by(user_id=g.user.id)\
         .group_by(Message.with_id)
     messages = Message.query.filter(Message.id.in_(subquery)).all()

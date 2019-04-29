@@ -5,16 +5,16 @@ from .utils import login_required, json_required
 from app.utils.aliyun_mail import AliyunEmail
 from .errors import bad_request, not_found, internal_error
 from app import db
-from app.models import *
+from app.models import User, WaitingUser, OfficialAccount
 import app.cache as Cache
 from sqlalchemy import func
 
-EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')
 # 4-30个字符，支持中英文、数字、"_"或减号, 一个中文相当于两个英文字符
-USERNAME_REGEX = re.compile(r"^[\u4e00-\u9fa5_a-zA-Z0-9\-]{2,30}$")
-CHINESE_CHARACTER = re.compile(r"[\u4e00-\u9fa5]")
+USERNAME_REGEX = re.compile(r'^[\u4e00-\u9fa5_a-zA-Z0-9\-]{2,30}$')
+CHINESE_CHARACTER = re.compile(r'[\u4e00-\u9fa5]')
 # 最少8位数, 最少含有1个数字和1个字母
-PASSWORD_REGEX = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$")
+PASSWORD_REGEX = re.compile(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$')
 aliyun = AliyunEmail()
 
 
@@ -30,7 +30,7 @@ def get_user():
     limit = request.args.get('limit', 10, type=int)
     if id != -1:
         user = Cache.get_user(id)
-        if user == None:
+        if user is None:
             return not_found("找不到该用户")
         return jsonify(user.to_json())
     if username != '':
@@ -93,15 +93,14 @@ def change_user():
 
     # 更改用户名
     if username:
-        strLength = len(username)
-        strLength += len(CHINESE_CHARACTER.findall(username))
-        if (not USERNAME_REGEX.match(username) or not
-        (4 <= strLength <= 30)):
+        str_length = len(username)
+        str_length += len(CHINESE_CHARACTER.findall(username))
+        if (not USERNAME_REGEX.match(username) or not (4 <= str_length <= 30)):
             return bad_request('username invalid')
         u = User.query.filter_by(username=username).first()
         if u == g.user:
             return bad_request('username unchanged')
-        if u != None:
+        if u is not None:
             return bad_request('username exists')
         g.user.username = username
 
@@ -198,7 +197,7 @@ def get_user_groups():
 
 @api.route('/user/waiting', methods=['POST'])
 @json_required
-def creat_waiting_user():
+def create_waiting_user():
     """缓存用户信息并发送验证码到邮箱"""
 
     email = request.json.get('email', '')
@@ -241,6 +240,11 @@ def creat_waiting_user():
 
 
 def user_first_created(u):
+    """
+    用户刚注册时，添加订阅公众号信息
+    :param u:
+    :return:
+    """
     developer = Cache.get_user(1)
     developer.followers.append(u)
     db.session.add(u)
@@ -265,4 +269,3 @@ def create_user():
         return jsonify({'user': u.to_json(), 'token': u.generate_auth_token(
             expiration=3600 * 24 * 365), 'expiration': 3600 * 24 * 365})
     return bad_request('verification_code error')
-

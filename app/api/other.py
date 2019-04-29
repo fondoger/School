@@ -7,17 +7,17 @@ from .errors import bad_request
 
 
 @api.route('/update', methods=['GET'])
-def get_updage_info():
+def get_update_info():
     platform = request.args.get('platform', '')
     if platform == 'ios':
         return "haha"
     if platform == 'android':
-        json = {
+        json_data = {
             "version": "1.0.1",
             "description": "更新功能测试",
             "download_url": None,
         }
-        return jsonify(json)
+        return jsonify(json_data)
     return bad_request('please specify a platform(ios/android)')
 
 

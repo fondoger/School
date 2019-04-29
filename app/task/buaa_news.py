@@ -26,23 +26,22 @@ class BUAANews:
 
         print("Syncing BUAA news at %s..." % self.page_key)
         articles = self.get_articles()
-        new_articles = None
         with app.app_context():
             account = OfficialAccount.query.filter_by(
                 accountname=self.accountname).one()
             new_articles = [
                 article for article in articles
                 if not db.session.query(exists().where(and_(
-                    Article.type_id==Article.TYPES["BUAANEWS"],
-                    Article.extra_key==article['key'],
+                    Article.type_id == Article.TYPES["BUAANEWS"],
+                    Article.extra_key == article['key'],
                 ))).scalar()
             ]
             print("Found %d new in %d buaa news" %
-                    (len(new_articles), len(articles)))
+                  (len(new_articles), len(articles)))
             if len(new_articles) == 0:
                 return
-        detailed_articles = [ self.get_article_detail(article)
-                for article in new_articles]
+        detailed_articles = [self.get_article_detail(article)
+                             for article in new_articles]
         with app.app_context():
             for article in detailed_articles:
                 data = {
@@ -52,23 +51,23 @@ class BUAANews:
                 }
                 extra_data = json.dumps(data, ensure_ascii=False)
                 a = Article(type="BUAANEWS",
-                        timestamp=self.parse_time(article['date']),
-                        extra_key=article['key'],
-                        extra_data=extra_data,
-                        extra_desc=article['title'],
-                        extra_url=self.base_url + article['key'],
-                        official_account=account)
+                            timestamp=self.parse_time(article['date']),
+                            extra_key=article['key'],
+                            extra_data=extra_data,
+                            extra_desc=article['title'],
+                            extra_url=self.base_url + article['key'],
+                            official_account=account)
                 db.session.add(a)
             db.session.commit()
         print("Finished sync.")
 
     def get_article_detail(self, article):
         """
-        :param article dict: {"key": key, "title": title}
+        :param article: dict: {"key": key, "title": title}
         """
         article_url = self.base_url + article['key']
         res = self.session.get(article_url, timeout=10)
-        soup = BeautifulSoup(res.content, "lxml")
+        soup = BeautifulSoup(res.content)
         main = soup.find("div", id="vsb_content")
         img = main.find("img")
         img_url = self.base_url + img['src'] if img else None
@@ -77,7 +76,7 @@ class BUAANews:
         for p in main.find_all("p"):
             t = p.get_text().strip()
             if not t:
-                continue;
+                continue
             segs.append(t)
             count += 1
             if count == 5:
@@ -93,8 +92,7 @@ class BUAANews:
         return res
 
     def parse_time(self, date: str):
-        utctime = datetime.strptime(date + "+0800",
-                "%Y-%m-%d%z")
+        utctime = datetime.strptime(date + "+0800", "%Y-%m-%d%z")
         now = datetime.utcnow()
         timestamp = utctime.replace(hour=now.hour, minute=now.minute)
         return timestamp.astimezone(pytz.utc)
@@ -102,7 +100,7 @@ class BUAANews:
     def get_articles(self):
         page_url = self.base_url + self.page_key + ".htm"
         res = self.session.get(page_url, timeout=10)
-        soup = BeautifulSoup(res.content, "lxml")
+        soup = BeautifulSoup(res.content)
         articles = soup.find_all("div", class_="listleftop1")
         res = []
         for article in articles:
@@ -112,10 +110,3 @@ class BUAANews:
             title = a.string
             res.append({"key": url, "title": title, "date": date})
         return res
-
-
-
-
-
-
-

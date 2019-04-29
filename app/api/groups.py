@@ -1,9 +1,10 @@
 from flask import request, g, jsonify, url_for
 from . import api
 from .utils import login_required, json_required
-from .errors import forbidden, unauthorized, bad_request, not_found
+from .errors import forbidden, bad_request, not_found
 from .. import db
-from ..models import User, Group, GroupMembership, Activity
+from ..models import Group, GroupMembership, Activity
+
 
 @api.route('/group', methods=['POST'])
 @json_required
@@ -29,7 +30,7 @@ def create_group():
     db.session.add(m)
     db.session.commit()
     return jsonify(group.to_json()), 201, \
-        {'Location': url_for('api.get_group', id=group.id, _external=True)}
+           {'Location': url_for('api.get_group', id=group.id, _external=True)}
 
 
 @api.route('/group', methods=['GET'])
@@ -90,7 +91,8 @@ def delete_group():
         return forbidden('Only group owner can do this.')
     db.session.delete(group)
     db.session.commit()
-    return jsonify({'id':id, 'message': 'delete success'})
+    return jsonify({'id': id, 'message': 'delete success'})
+
 
 @api.route('/activity', methods=['POST'])
 @json_required
@@ -127,7 +129,7 @@ def create_activity():
     db.session.add(a)
     db.session.commit()
     return jsonify(a.to_json()), 201, \
-        {'Location': url_for('api.get_activity', id=a.id, _external=True)}
+           {'Location': url_for('api.get_activity', id=a.id, _external=True)}
 
 
 @api.route('/activity', methods=['GET'])

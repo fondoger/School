@@ -1,10 +1,7 @@
-from flask import g
 from flask import current_app
 from datetime import datetime
 from .. import db
-from .users import User
-from random import randint
-from sqlalchemy.ext.associationproxy import association_proxy
+
 
 def defaultTitle(context):
     role = context.current_parameters.get('role')
@@ -14,6 +11,7 @@ def defaultTitle(context):
         return '管理员'
     else:
         return '成员'
+
 
 class GroupMembership(db.Model):
     __tablename__ = 'group_memberships'
@@ -29,13 +27,11 @@ class GroupMembership(db.Model):
 
     # static constants
     MEMBER = 0  # 普通成员
-    ADMIN = 1   # 管理员
-    OWNER = 2   # 持有者
+    ADMIN = 1  # 管理员
+    OWNER = 2  # 持有者
 
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'),
-                            primary_key=True)
-    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'),
-                            primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'), primary_key=True)
 
     role = db.Column(db.Integer, nullable=False, default=MEMBER)
     title = db.Column(db.String(32), nullable=False, default=defaultTitle)
@@ -73,10 +69,10 @@ class Group(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     groupname = db.Column(db.String(32), nullable=False, unique=True,
-                         index=True)
+                          index=True)
     description = db.Column(db.String(64))
     avatar = db.Column(db.String(64), default='default_group_avatar.jpg',
-        nullable=False)
+                       nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     public = db.Column(db.Boolean, default=False, nullable=False)
     # 除了公开团体有自己的category, 其余所有团体都是普通团体
@@ -84,9 +80,9 @@ class Group(db.Model):
 
     """ Relationships """
     group_memberships = db.relationship("GroupMembership", back_populates="group",
-        cascade='all, delete-orphan')
+                                        cascade='all, delete-orphan')
     activities = db.relationship('Activity', backref='group', lazy='dynamic',
-        cascade='all, delete-orphan')
+                                 cascade='all, delete-orphan')
     statuses = db.relationship('Status', backref='group', lazy='dynamic')
 
     def __repr__(self):
@@ -94,25 +90,25 @@ class Group(db.Model):
 
     @property
     def members(self):
-        return [ m.users for m in self.group_memberships]
+        return [m.users for m in self.group_memberships]
 
     def get_owner(self):
         for m in self.group_memberships:
             if m.role == GroupMembership.OWNER:
                 return m.user
-        raise Exception('Group %s has no onwer' % self.groupname)
+        raise Exception('Group %s has no owner' % self.groupname)
 
     @staticmethod
     def process_json(json_group: dict):
         return json_group
 
-    def to_json(self, cache=False):
-        imageServer = current_app.config['IMAGE_SERVER']
+    def to_json(self):
+        image_server = current_app.config['IMAGE_SERVER']
         return {
             'id': self.id,
             'description': self.description,
             'groupname': self.groupname,
-            'avatar': imageServer + self.avatar,
+            'avatar': image_server + self.avatar,
             'public': self.public,
             'category': self.category,
             'created_at': self.created_at,
@@ -134,13 +130,12 @@ class Activity(db.Model):
     keyword = db.Column(db.String(32), nullable=False, default='默认活动')
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     group_id = db.Column(db.Integer, db.ForeignKey('groups.id'),
-        nullable=False)
+                         nullable=False)
     picture = db.Column(db.Text, default='default_activity_cover.jpg',
-        nullable=False)
+                        nullable=False)
 
     def to_json(self):
-        imageServer = current_app.config['IMAGE_SERVER']
-
+        image_server = current_app.config['IMAGE_SERVER']
         return {
             'id': self.id,
             'title': self.title,
@@ -149,8 +144,5 @@ class Activity(db.Model):
             'timestamp': self.timestamp,
             'keyword': self.keyword,
             'group': self.group.to_json(),
-            'picture': imageServer + self.picture,
+            'picture': image_server + self.picture,
         }
-
-
-

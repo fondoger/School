@@ -1,4 +1,3 @@
-from flask import g, current_app
 from datetime import datetime
 from .. import db
 from . import User
@@ -11,14 +10,12 @@ class TextMessage(db.Model):
     """
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.Text, nullable=False)
-    ufrom_id = db.Column(db.Integer, db.ForeignKey('users.id'),
-        nullable=False)
+    ufrom_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     uto_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow,
-        nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    messages = db.relationship('Message', backref=db.backref('text_message',
-        lazy=True), cascade='all, delete-orphan')
+    messages = db.relationship('Message', backref=db.backref('text_message', lazy=True),
+                               cascade='all, delete-orphan')
 
     def __repr__(self):
         return '<%r to %r: %r>' % (self.ufrom_id, self.uto_id, self.text)
@@ -33,8 +30,7 @@ class Message(db.Model):
     当sender删除该消息时, 将sender_id设置为null.
     """
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'),
-        nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     with_id = db.Column(db.Integer)
     text_message_id = db.Column(db.Integer, db.ForeignKey('text_messages.id'))
     is_read = db.Column(db.Boolean, default=False)
@@ -43,7 +39,6 @@ class Message(db.Model):
         return "<user %r - %r >" % (self.user, self.text_message)
 
     def to_json(self, with_user=False):
-        image_server = current_app.config['IMAGE_SERVER']
         u = User.query.get(self.with_id) if with_user else None
         return {
             'id': self.id,

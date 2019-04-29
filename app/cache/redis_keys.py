@@ -2,38 +2,36 @@
 Ugly solution but simple.
 """
 
-
 """
 User
 """
 
 user_token = "utoken:{}"
-user_token_expire = 3600*24*7
+user_token_expire = 3600 * 24 * 7
 
 user = "user:{}"
-user_expire = 3600*24*7
+user_expire = 3600 * 24 * 7
 
 # TODO: change this to Redis Hash data type
 # Fiels: id, username, avatar, self_intro, gender, self_intro,
 # member_since, last_seen, groups_enrolled, followed, followers
 user_json = "user:{}:json"
-user_json_expire = 3600*24*7
+user_json_expire = 3600 * 24 * 7
 
 # Redis set of user ids
 user_followers = "user:{}:followers"
-user_followers_expire = 3600*24*7
+user_followers_expire = 3600 * 24 * 7
 
-# Redis list of statuse's ids
-#user_statuses = "user:{}:statuses"
-#user_statuses_expire = 3600*24*7
+# Redis list of status's ids
+# user_statuses = "user:{}:statuses"
+# user_statuses_expire = 3600*24*7
 
-#user_followed_num = "user:{}:followed_num"
-#user_followed_num_expire = 3600*24*3
+# user_followed_num = "user:{}:followed_num"
+# user_followed_num_expire = 3600*24*3
 
-#user_group_enrolled_num = "user:{}:group_enrolled_num"
-#user_group_enrolled_num_expire = 3600*24*3
+# user_group_enrolled_num = "user:{}:group_enrolled_num"
+# user_group_enrolled_num_expire = 3600*24*3
 
-# Redis sorted set
 """
 element: type:id
 type: s(status) or a(rticle), 1 character is faster
@@ -52,15 +50,15 @@ type: s(status) or a(rticle), 1 character is faster
 * 使用zremrangebyrank, 截断取前100项
 * timeline列表读取完毕后，在客户端显示没有更多内容，提示没有新微博，让用户去看热门
 """
+# Redis sorted set
 user_timeline = "user:{}:timeline"
-user_timeline_expire = 3600*24*10
+user_timeline_expire = 3600 * 24 * 10
 
 # this is for elements in user_timeline, not redis key
 timeline_status_item = "s:{}"
 timeline_status_prefix = "s"
 timeline_article_item = "a:{}"
 timeline_article_prefix = "a"
-
 
 """
 Public timeline(Hot statuses)
@@ -71,18 +69,17 @@ public_timeline = "public:timeline"
 Status
 """
 status_json = "status:{}:json"
-status_json_expire = 3600*24*7
+status_json_expire = 3600 * 24 * 7
 
 # Redis set of user ids
 status_liked_users = "status:{}:liked_users"
-status_liked_users_expire = 3600*24*7
+status_liked_users_expire = 3600 * 24 * 7
 
 """
 Topic
 """
 topic_id = "{topic_name}:id"
-topic_id_expire = 3600*24*30
-
+topic_id_expire = 3600 * 24 * 30
 
 """
 Group
@@ -90,29 +87,27 @@ Group
 
 # Redis String
 group_json = "group:{}:json"
-group_json_expire = 3600*24*7
+group_json_expire = 3600 * 24 * 7
 # Redis String
 group_user_title = "group:{group_id}:user:{user_id}:title"
-group_user_title_expire = 3600*24*7
-
+group_user_title_expire = 3600 * 24 * 7
 
 """
 Official Account
 """
 # Redis String
 official_account_json = "official_account:{}:json"
-official_account_json_expire = 3600*24*7
+official_account_json_expire = 3600 * 24 * 7
 # Redis Set
 official_account_subscribers = "official_account:{}:subscribers"
-official_account_subscribers_expire = 3600*24*7
+official_account_subscribers_expire = 3600 * 24 * 7
 
 """
 Articles
 """
 # Redis String
 article_json = "article:{}:json"
-article_json_expire = 3600*24*7
-
+article_json_expire = 3600 * 24 * 7
 
 """
 Task Queue
@@ -133,9 +128,3 @@ article_deleted_prefix = "article_deleted"
 # Insert this to right of the queue for priority
 user_returned = "user_returned:{}"
 user_returned_prefix = "user_returned"
-
-
-
-
-
-

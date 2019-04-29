@@ -1,5 +1,4 @@
 from app import rd
-from app.models import *
 import threading
 import app.cache as Cache
 import app.cache.redis_keys as Keys
@@ -9,15 +8,17 @@ import atexit
 
 _app = None
 
+
 def init_app(app):
     global _app
     _app = app
 
+
 @logfuncall
 def _insert_status_into_timeline(status_id, user_id):
     json = Cache.get_status_json(status_id, process_json=False)
-    if json == None:
-        print("#"*10, "can't load status_json")
+    if json is None:
+        print("#" * 10, "can't load status_json")
         return
     score = Score.from_status_json(json)
     item = Keys.timeline_status_item.format(status_id)
@@ -27,6 +28,7 @@ def _insert_status_into_timeline(status_id, user_id):
     # insert into public timeline
     key = Keys.public_timeline
     rd.zadd(key, score, item)
+
 
 @logfuncall
 def _remove_status_from_timeline(status_id, user_id):
@@ -40,11 +42,12 @@ def _remove_status_from_timeline(status_id, user_id):
     key = Keys.public_timeline
     rd.zrem(key, item)
 
+
 @logfuncall
 def _insert_article_into_timeline(article_id, account_id):
     json = Cache.get_article_json(article_id, process_json=False)
-    if json == None:
-        print("#"*10, "can't load article_json")
+    if json is None:
+        print("#" * 10, "can't load article_json")
         return
     score = Score.from_article_json(json)
     item = Keys.timeline_article_item.format(article_id)
@@ -54,6 +57,7 @@ def _insert_article_into_timeline(article_id, account_id):
     # insert into public timeline
     key = Keys.public_timeline
     rd.zadd(key, score, item)
+
 
 @logfuncall
 def _remove_article_from_timeline(article_id, account_id):
@@ -66,6 +70,7 @@ def _remove_article_from_timeline(article_id, account_id):
     # remove from public timeline
     key = Keys.public_timeline
     rd.zrem(key, item)
+
 
 @logfuncall
 def _handle(task_name):
@@ -84,47 +89,31 @@ def _wrapper(arg):
     with _app.app_context():
         _handle(arg)
 
+
 class LoopThread(threading.Thread):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.should_stop = False
+
     def stop(self):
         self.should_stop = True
         print("Timeline task loop thread set to stop.")
+
     def run(self):
-        print("Started timelien events task...")
+        print("Started timeline events task...")
         while not self.should_stop:
-            result = rd.brpop(Keys.timeline_events_queue,
-                     timeout=5)
-            if result == None:
+            result = rd.brpop(Keys.timeline_events_queue, timeout=5)
+            if result is None:
                 continue
             # Delay execute to avoid mysql miss
-            timer = threading.Timer(1, _wrapper,
-                    [result[1].decode()])
+            timer = threading.Timer(1, _wrapper, [result[1].decode()])
             timer.start()
         print("Timeline task loop thread stopped")
+
 
 def start():
     thread = LoopThread()
     thread.daemon = True
     thread.start()
     atexit.register(lambda: thread.stop())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

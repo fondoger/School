@@ -12,6 +12,7 @@ from sqlalchemy import and_
 # key:job_id, value:timestamp
 previous_run_time = {}
 
+
 class Weixin:
     """
     :var str account_id: id of OfficialAccount
@@ -37,8 +38,8 @@ class Weixin:
             new_articles = [
                 article for article in articles
                 if not db.session.query(exists().where(and_(
-                    Article.type_id==Article.TYPES['WEIXIN'],
-                    Article.extra_key==article['id']
+                    Article.type_id == Article.TYPES['WEIXIN'],
+                    Article.extra_key == article['id']
                 ))).scalar()
             ]
             print("Found %d new in %d weixin articles" %
@@ -48,29 +49,24 @@ class Weixin:
             for article in new_articles:
                 data = json.dumps(article, ensure_ascii=False)
                 article = Article(type="WEIXIN",
-                        timestamp=self.get_timestamp(article),
-                        extra_key=article['id'],
-                        extra_url=article['linkInfo']['originalLinkUrl'],
-                        extra_data=data,
-                        extra_desc=article['linkInfo']['title'][:64],
-                        official_account=account)
+                                  timestamp=self.get_timestamp(article),
+                                  extra_key=article['id'],
+                                  extra_url=article['linkInfo']['originalLinkUrl'],
+                                  extra_data=data,
+                                  extra_desc=article['linkInfo']['title'][:64],
+                                  official_account=account)
                 db.session.add(article)
             db.session.commit()
-
 
     def get_articles(self):
         headers = {
             'App-Version': '4.12.0',
             'Referer': 'https://m.okjike.com/topics/' + self.jike_id,
         }
-        data = { "loadMoreKey": None, "topic": self.jike_id, "limit": 10 }
+        data = {"loadMoreKey": None, "topic": self.jike_id, "limit": 10}
         res = self.session.post(self.url, data=data, timeout=5, headers=headers)
         return res.json()['data']
 
-
     def get_timestamp(self, json):
         return datetime.strptime(json['createdAt'][:-5] + "+0000",
-                "%Y-%m-%dT%H:%M:%S%z")
-
-
-
+                                 "%Y-%m-%dT%H:%M:%S%z")

@@ -2,7 +2,7 @@ from flask import request, g, jsonify, url_for
 from datetime import datetime
 from . import api
 from .utils import login_required, json_required
-from .errors import forbidden, unauthorized, bad_request, not_found
+from .errors import forbidden, bad_request
 from .. import db
 from ..models import User, Sale, SalePicture, SaleComment
 
@@ -22,20 +22,19 @@ def create_sale():
     if text == '':
         return bad_request('text empty')
     if len(pics) == 0:
-        return bad_request(('image empty'))
+        return bad_request('image empty')
     if location not in Sale.LOCATION:
         return bad_request('location error')
     if category not in Sale.CATEGORY:
         return bad_request('category error')
-    s = Sale(user=g.user, title=title, text=text, price=price, 
-             location=location, category=category)
+    s = Sale(user=g.user, title=title, text=text, price=price, location=location, category=category)
     for index, pic_url in enumerate(pics):
         p = SalePicture(url=pic_url, sale=s, index=index)
         db.session.add(p)
     db.session.add(s)
     db.session.commit()
     return jsonify(s.to_json()), 201, \
-        {'Location': url_for('api.get_sale', id=s.id, _external=True)}
+           {'Location': url_for('api.get_sale', id=s.id, _external=True)}
 
 
 @api.route('/sale', methods=['GET'])
@@ -65,6 +64,7 @@ def get_sale():
     sales = [s.to_json() for s in sales]
     return jsonify(sales)
 
+
 @api.route('/sale', methods=['PUT', 'PATCH'])
 @json_required
 @login_required
@@ -77,7 +77,7 @@ def update_sale():
     db.session.add(s)
     db.session.commit()
     return jsonify(s.to_json()), 201, \
-        {'Location': url_for('api.get_sale', id=s.id, _external=True)}
+           {'Location': url_for('api.get_sale', id=s.id, _external=True)}
 
 
 @api.route('/sale', methods=['DELETE'])
@@ -133,7 +133,7 @@ def create_sale_comment():
     db.session.add(c)
     db.session.commit()
     return jsonify(c.to_json()), 201, \
-        {'Location': url_for('api.get_sale_comment', id=c.id, _external=True)}
+           {'Location': url_for('api.get_sale_comment', id=c.id, _external=True)}
 
 
 @api.route('/sale/comment', methods=['GET'])
@@ -147,7 +147,7 @@ def get_sale_comment():
         return jsonify(c.to_json())
     s = Sale.query.get_or_404(sale_id)
     comments = s.comments.order_by(SaleComment.timestamp.desc())
-    comments = s.comments.offset(offset).limit(limit)
+    comments = comments.offset(offset).limit(limit)
     comments = [c.to_json() for c in comments]
     return jsonify(comments)
 

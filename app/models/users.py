@@ -5,21 +5,19 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask import current_app, g
 from random import randint
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from sqlalchemy.sql import text
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy import event
 from time import time
-import _pickle as pickle
 from app.utils.logger import logfuncall
 from app.utils import to_http_date
 
 user_follows = db.Table('user_follows',
-    db.Column('follower_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
-    db.Column('followed_id', db.Integer, db.ForeignKey('users.id'), primary_key=True)
-)
+                        db.Column('follower_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
+                        db.Column('followed_id', db.Integer, db.ForeignKey('users.id'), primary_key=True))
+
 
 def defaultUsername(context):
-    return '用户_' + str(int(time()*10000000%10000000000000000))
+    return '用户_' + str(int(time() * 10000000 % 10000000000000000))
 
 
 class User(UserMixin, db.Model):
@@ -31,7 +29,7 @@ class User(UserMixin, db.Model):
                          index=True, default=defaultUsername)
     password_hash = db.Column(db.String(128))
     avatar = db.Column(db.String(64), nullable=False,
-        default='default_avatar.jpg')
+                       default='default_avatar.jpg')
     self_intro = db.Column(db.String(40), default='')
     # 用户的性别，值为1时是男性，值为2时是女性，值为0时是未知
     gender = db.Column(db.Integer, default=0)
@@ -42,9 +40,9 @@ class User(UserMixin, db.Model):
     """ Relationships """
     # 动态
     statuses = db.relationship('Status', backref='user', lazy='dynamic',
-            cascade='all, delete-orphan')
+                               cascade='all, delete-orphan')
     status_replies = db.relationship('StatusReply', backref='user',
-            lazy='dynamic', cascade='all, delete-orphan')
+                                     lazy='dynamic', cascade='all, delete-orphan')
     # 用户关注
     followed = db.relationship(
         'User', secondary=user_follows,
@@ -53,13 +51,13 @@ class User(UserMixin, db.Model):
         backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
     # 团体
     group_memberships = db.relationship("GroupMembership",
-        back_populates="user", cascade='all, delete-orphan', lazy='dynamic')
+                                        back_populates="user", cascade='all, delete-orphan', lazy='dynamic')
     # 添加直接访问方式, 可以直接通过u.groups访问到用户所在的团体
     groups = association_proxy("group_memberships", "group")
     # 二手
     sales = db.relationship('Sale', backref='user', lazy='dynamic')
     sale_comments = db.relationship('SaleComment', backref='user',
-        lazy='dynamic')
+                                    lazy='dynamic')
     # private messages
     messages = db.relationship('Message', backref='user', lazy='dynamic')
 
@@ -71,16 +69,16 @@ class User(UserMixin, db.Model):
     @staticmethod
     def verify_auth_token(token):
         import app.cache as Cache
-        import app.cache.redis_keys as Keys
+        import app.cache.redis_keys as KEYS
         """ Get current User from token """
-        token_key = Keys.user_token.format(token)
+        token_key = KEYS.user_token.format(token)
         data = rd.get(token_key)
-        if data != None:
+        if data is not None:
             return Cache.get_user(data.decode())
         s = Serializer('auth' + current_app.config['SECRET_KEY'])
         try:
             data = s.loads(token)
-            rd.set(token_key, data['id'], Keys.user_token_expire)
+            rd.set(token_key, data['id'], KEYS.user_token_expire)
             return Cache.get_user(data['id'])
         except:
             return None
@@ -92,13 +90,13 @@ class User(UserMixin, db.Model):
     def process_json(json_user):
         import app.cache as Cache
         id = json_user['id']
-        t = Cache.is_user_followed_by(id, g.user.id) if\
-                hasattr(g, 'user') else False
+        t = Cache.is_user_followed_by(id, g.user.id) if \
+            hasattr(g, 'user') else False
         json_user['followed_by_me'] = t
         json_user['last_seen'] = to_http_date(
-                json_user['last_seen'])
+            json_user['last_seen'])
         json_user['member_since'] = to_http_date(
-                json_user['member_since'])
+            json_user['member_since'])
         return json_user
 
     @logfuncall
@@ -109,7 +107,7 @@ class User(UserMixin, db.Model):
         json_user = {
             'id': self.id,
             'username': self.username,
-            'avatar': image_server+self.avatar,
+            'avatar': image_server + self.avatar,
             'self_intro': self.self_intro,
             'gender': self.gender,
             'member_since': self.member_since.timestamp(),
@@ -136,7 +134,6 @@ class User(UserMixin, db.Model):
         self.password_hash = generate_password_hash(password)
 
 
-
 def _clear_redis_cache(instance: User):
     import app.cache.redis_keys as Keys
     id = instance.id
@@ -148,12 +145,14 @@ def _clear_redis_cache(instance: User):
     ]
     rd.delete(*keys_to_remove)
 
+
 @logfuncall
 @event.listens_for(User, "after_insert")
 @event.listens_for(User, "after_update")
 def user_updated(mapper, connection, target):
     _clear_redis_cache(target)
     # TODO: Using Cache.cache_user_json() to reduce a sql query
+
 
 @logfuncall
 @event.listens_for(User, "after_delete")
@@ -163,6 +162,7 @@ def user_deleted(mapper, connection, target):
 
 def randomVerificationCode(context):
     return str(randint(100000, 999999))
+
 
 class WaitingUser(db.Model):
     __classname = 'waiting_users'
@@ -194,5 +194,3 @@ class WaitingUser(db.Model):
         if minutes >= 15:
             return None
         return wu
-
-
