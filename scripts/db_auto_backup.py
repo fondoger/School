@@ -123,7 +123,7 @@ def backup_mysql(expire_days=30):
         user=DB_USER, password=DB_PASSWORD, db_name=DB_DATABASE, output=mysql_dump_path)
     try:
         logging.info("executing command: %s" % cmd)
-        subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True, shell=True)
         logging.info("uploading file to upyun: %s" % backup_file_name)
         Upyun.upload(mysql_dump_path, backup_file_name, expire_days)
         logging.info("backup Success!")
