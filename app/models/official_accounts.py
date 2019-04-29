@@ -31,7 +31,7 @@ class OfficialAccount(db.Model):
 
     external_sync = db.Column(db.Boolean, default=False)
     external_type = db.Column(db.String(32), nullable=True)
-    external_key = db.Column(db.String(32), nullable=True)
+    external_key = db.Column(db.String(64), nullable=True)
     external_synced_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     """ Relationships """

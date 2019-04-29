@@ -45,7 +45,7 @@ class Config:
 
 
 class Development(Config):
-    DEBUG = True
+    DEBUG = False
     SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://test:Yq!((&1024@localhost/TEST'
 
     @staticmethod
