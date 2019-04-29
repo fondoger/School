@@ -1,4 +1,5 @@
-from . import *
+from app import db, models
+from app.models import *
 
 def generate_fake_activities():
     activities = [

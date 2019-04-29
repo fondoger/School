@@ -1,4 +1,5 @@
-from . import *
+from app import db, models
+from app.models import *
 from .generate_fake_users import generate_fake_users
 from .generate_groups import generate_private_groups, generate_public_groups
 from .generate_fake_activities import generate_fake_activities

@@ -15,6 +15,7 @@ Crontab命令如下：
 0 3 1 * * /bin/bash/python3 /path/to/file.py --db=mysql
 """
 
+import os
 import sys
 import time
 import argparse
@@ -25,11 +26,13 @@ import logging
 import subprocess
 from datetime import datetime
 from requests import Session, Request
-from app.utils.aliyun_mail import AliyunEmail
+from aliyun_email import AliyunEmail
+
 
 logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] - %(funcName)s - %(message)s', stream=sys.stdout)
 # save log messages to file
-file_handler = logging.FileHandler('db_auto_backup.log')
+log_path = os.path.join(os.path.relpath(__file__), 'db_auto_backup.log')
+file_handler = logging.FileHandler(log_path)
 file_handler.setFormatter(logging.Formatter('[%(asctime)s] - %(funcName)s - %(message)s'))
 logging.getLogger().addHandler(file_handler)
 
@@ -123,8 +126,10 @@ def backup_mysql(expire_days=30):
         logging.info("uploading file to upyun: %s" % backup_file_name)
         Upyun.upload(backup_file_name, backup_file_name, expire_days)
         logging.info("backup Success!")
-    except:
+    except Exception as e:
         logging.exception("backup failed!")
+        aliyun.send_email('1075004549@qq.com', subject='【社交北航】自动备份失败',
+                          text_body="%s, 详细信息请查看日志" % str(e))
         sys.exit(1)
 
 

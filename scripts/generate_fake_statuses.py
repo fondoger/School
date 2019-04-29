@@ -1,4 +1,5 @@
-from . import *
+from app import db, models
+from app.models import *
 from random import randint
 import forgery_py
 
