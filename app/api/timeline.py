@@ -30,18 +30,18 @@ def _load_user_timeline(id):
     key = KEYS.user_timeline.format(id)
     result = db.engine.execute(text(sql), UID=id, LIMIT=100, OFFSET=0)
     result = list(result)
-    args = []
+    pairs = {}
     for item in result:
-        if item['kind'] == 0:
+        if item['kind'] == 0:       # status
             timeline_item = KEYS.timeline_status_item.format(item['id'])
             score = Score.timestamp_to_score(item['timestamp'])
-            rd.zadd(key, score, timeline_item)
-        elif item['kind'] == 1:
+            pairs[timeline_item] = score
+        elif item['kind'] == 1:     # article
             timeline_item = KEYS.timeline_article_item.format(item['id'])
             score = Score.timestamp_to_score(item['timestamp'])
-            args += [score, timeline_item]
-    if args:
-        rd.zadd(key, *args)
+            pairs[timeline_item] = score
+    if pairs:
+        rd.zadd(key, pairs)
         rd.expire(key, KEYS.user_timeline_expire)
 
 
