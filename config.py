@@ -3,6 +3,7 @@ from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+
 class Config:
     DEBUG = True
 
@@ -10,11 +11,12 @@ class Config:
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data-test.sqlite')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = '123'
-    TRAP_BAD_REQUEST_ERRORS = False # For restful api
+    TRAP_BAD_REQUEST_ERRORS = False  # For restful api
     TRAP_HTTP_EXCEPTIONS = False
 
     # For Flask-Redis
     REDIS_URL = 'redis://localhost:6379/0'
+
     # For Flask-RQ2
     RQ_REDIS_URL = REDIS_URL
 
@@ -26,7 +28,8 @@ class Config:
             url='sqlite:///' + os.path.join(basedir, 'jobstore.sqlite')
         ),
     }
-    ### Others
+
+    # Others
     IMAGE_SERVER = 'http://asserts.fondoger.cn/'
 
     @staticmethod
@@ -37,7 +40,8 @@ class Config:
         app.logger.addHandler(file_handler)
         # Set logger for SQLAlchemy
         logging.basicConfig()
-        logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
+        # We can use follow code to log every SQL query
+        # logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 
 class Development(Config):

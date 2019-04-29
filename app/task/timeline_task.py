@@ -24,10 +24,10 @@ def _insert_status_into_timeline(status_id, user_id):
     item = Keys.timeline_status_item.format(status_id)
     for f_id in Cache.get_follower_ids(user_id):
         key = Keys.user_timeline.format(f_id)
-        rd.zadd(key, score, item)
+        rd.zadd(key, {item: score})
     # insert into public timeline
     key = Keys.public_timeline
-    rd.zadd(key, score, item)
+    rd.zadd(key, {item: score})
 
 
 @logfuncall
@@ -53,10 +53,10 @@ def _insert_article_into_timeline(article_id, account_id):
     item = Keys.timeline_article_item.format(article_id)
     for s_id in Cache.get_subscriber_ids(account_id):
         key = Keys.user_timeline.format(s_id)
-        rd.zadd(key, score, item)
+        rd.zadd(key, {item: score})
     # insert into public timeline
     key = Keys.public_timeline
-    rd.zadd(key, score, item)
+    rd.zadd(key, {item: score})
 
 
 @logfuncall

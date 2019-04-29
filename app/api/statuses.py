@@ -3,7 +3,7 @@ from flask import request, g, jsonify, url_for
 from . import api
 from .utils import login_required, json_required
 from .errors import forbidden, bad_request, not_found
-from app import db, rd, rank
+from app import db, rd
 from app.models import Status, Group, StatusPicture, StatusReply, Topic, Article
 from sqlalchemy.sql import text
 import app.cache as Cache
@@ -83,7 +83,6 @@ def create_status():
             db.session.add(p)
         db.session.add(s)
         db.session.commit()
-        rank.push(s)
         return jsonify(s.to_json()), 201, \
                {'Location': url_for('api.get_status', id=s.id, _external=True)}
 
@@ -187,7 +186,6 @@ def get_status():
         ss = Status.query.order_by(Status.timestamp.desc())
         ss = ss.offset(offset).limit(limit)
         ss = [s.to_json() for s in ss]
-        rank.get_fresh()
         return jsonify(ss)
 
     if type == 'timeline':
@@ -270,7 +268,6 @@ def delete_status():
         return forbidden('owner required')
     db.session.delete(s)
     db.session.commit()
-    rank.remove(s)
     return jsonify({'id': id, 'message': 'delete success'})
 
 
@@ -295,7 +292,6 @@ def create_status_like():
     s.liked_users.append(g.user)
     db.session.add(s)
     db.session.commit()
-    rank.push(s)
     return jsonify({'id': id, 'message': 'create success'})
 
 
@@ -332,7 +328,6 @@ def create_status_reply():
     r = StatusReply(text=text, status=s, user=g.user)
     db.session.add(r)
     db.session.commit()
-    rank.push(s)
     return jsonify(r.to_json()), 201, \
            {'Location': url_for('api.get_status_reply', id=r.id, _external=True)}
 

@@ -95,7 +95,7 @@ def change_user():
     if username:
         str_length = len(username)
         str_length += len(CHINESE_CHARACTER.findall(username))
-        if (not USERNAME_REGEX.match(username) or not (4 <= str_length <= 30)):
+        if not USERNAME_REGEX.match(username) or not (4 <= str_length <= 30):
             return bad_request('username invalid')
         u = User.query.filter_by(username=username).first()
         if u == g.user:
@@ -111,7 +111,7 @@ def change_user():
         if gender == 0 or gender == 1 or gender == 2:
             g.user.gender = gender
         else:
-            return bad_request('gender must be 0(unknonwn), 1(male) or 2(female).')
+            return bad_request('gender must be 0(unknown), 1(male) or 2(female).')
             # g.user.gender = int(gender)
     db.session.add(g.user)
     db.session.commit()

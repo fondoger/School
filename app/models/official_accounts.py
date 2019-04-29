@@ -1,6 +1,7 @@
 from flask import g, current_app
 from app import db, rd
 from sqlalchemy import event
+from datetime import datetime
 
 # many to many
 # Typo: `users_id` should be `user_id`, but it's not easy to correct it
@@ -9,8 +10,7 @@ subscriptions = db.Table('subscriptions',
                          db.Column('official_account_id', db.Integer,
                                    db.ForeignKey('official_accounts.id'), primary_key=True),
                          db.Column('users_id', db.Integer,
-                                   db.ForeignKey('users.id'), primary_key=True),
-                         )
+                                   db.ForeignKey('users.id'), primary_key=True))
 
 
 class OfficialAccount(db.Model):
@@ -28,6 +28,11 @@ class OfficialAccount(db.Model):
     description = db.Column(db.Text)
     avatar = db.Column(db.String(64), nullable=False)
     page_url = db.Column(db.String(64))
+
+    external_sync = db.Column(db.Boolean, default=False)
+    external_type = db.Column(db.String(32), nullable=True)
+    external_key = db.Column(db.String(32), nullable=True)
+    external_synced_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     """ Relationships """
     articles = db.relationship('Article', backref='official_account',

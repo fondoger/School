@@ -67,7 +67,7 @@ class BUAANews:
         """
         article_url = self.base_url + article['key']
         res = self.session.get(article_url, timeout=10)
-        soup = BeautifulSoup(res.content)
+        soup = BeautifulSoup(res.content, features="html.parser")
         main = soup.find("div", id="vsb_content")
         img = main.find("img")
         img_url = self.base_url + img['src'] if img else None
@@ -100,7 +100,7 @@ class BUAANews:
     def get_articles(self):
         page_url = self.base_url + self.page_key + ".htm"
         res = self.session.get(page_url, timeout=10)
-        soup = BeautifulSoup(res.content)
+        soup = BeautifulSoup(res.content, features="html.parser")
         articles = soup.find_all("div", class_="listleftop1")
         res = []
         for article in articles:

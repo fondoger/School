@@ -4,10 +4,7 @@ from flask_redis import FlaskRedis
 from flask_apscheduler import APScheduler
 from flask_login import LoginManager
 from flask_cors import CORS
-from app.algorithm.rank import Rank
 from config import config
-from app.task import add_init_jobs
-from app import task
 import atexit
 import os
 
@@ -17,7 +14,6 @@ scheduler = APScheduler()
 login_manager = LoginManager()
 login_manager.session_protection = None
 login_manager.login_view = 'api.login'
-rank = Rank()
 
 
 def create_app(config_name):
@@ -37,6 +33,7 @@ def create_app(config_name):
     # because we need to store/read bytes data
     rd.init_app(app)
     login_manager.init_app(app)
+    from app import task
     task.init_app(app)
     scheduler.init_app(app)  # access scheduler from app.scheduler
 
@@ -50,7 +47,7 @@ def create_app(config_name):
         # prevents scheduler start twice (only in debug mode)
         # https://stackoverflow.com/questions/14874782
         scheduler.start()
-        add_init_jobs()
+        task.add_init_jobs()
         atexit.register(lambda: scheduler.shutdown())
         print("Scheduler started...")
 
@@ -58,10 +55,6 @@ def create_app(config_name):
     from app.task import timeline_task
     timeline_task.init_app(app)
     timeline_task.start()
-
-    # for calculate rank every day
-    if not app.debug:
-        rank.init_app(app)
 
     # Register Blueprints
     from .api import api as api_blueprint

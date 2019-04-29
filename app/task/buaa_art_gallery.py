@@ -67,7 +67,7 @@ class BUAAArt:
         """
         article_url = self.base_url + article['key']
         res = self.session.get(article_url, timeout=10)
-        soup = BeautifulSoup(res.content, "lxml")
+        soup = BeautifulSoup(res.content, features="html.parser")
         main = soup.find("ul", id="ContentBodyPart1")
         img = main.find("img")
         img_url = self.base_url + img['src'] if img else None
@@ -100,7 +100,7 @@ class BUAAArt:
     def get_articles(self):
         page_url = self.base_url + self.page_key + ".htm"
         res = self.session.get(page_url, timeout=10)
-        soup = BeautifulSoup(res.content)
+        soup = BeautifulSoup(res.content, features="html.parser")
         main = soup.find("div", class_="idx_mid_left")
         articles = main.find_all("li")
         res = []
