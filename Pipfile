@@ -23,4 +23,6 @@ redis = "*"
 hiredis = "*"
 flask-redis = "*"
 beautifulsoup4 = "*"
-
+gunicorn = "*"
+flask-cors = "*"
+pymysql = "*"
