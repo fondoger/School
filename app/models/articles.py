@@ -62,7 +62,7 @@ class Article(db.Model):
     type_id = db.Column(db.Integer)  # using type instead of type_id
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     extra_url = db.Column(db.Text)
-    extra_key = db.Column(db.String(32))
+    extra_key = db.Column(db.String(64))
     extra_desc = db.Column(db.String(64))
     extra_data = db.Column(db.Text)
     official_account_id = db.Column(db.Integer, db.ForeignKey('official_accounts.id'), nullable=False)
