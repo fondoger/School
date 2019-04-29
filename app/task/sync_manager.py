@@ -63,3 +63,4 @@ def add_sync_job(website_type, module_name, class_name, interval):
     }
     scheduler.add_job(**job)
     print("Added sync job:", website_type)
+

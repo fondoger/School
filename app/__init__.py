@@ -37,19 +37,10 @@ def create_app(config_name):
     task.init_app(app)
     scheduler.init_app(app)  # access scheduler from app.scheduler
 
-    """
-    Running in gunicorn:
-    To prevent from starting multiple scheduler when running app in gunicorn
-    with multiple workers, add `--preload` argument.
-    Read: https://stackoverflow.com/questions/16053364
-    """
-    if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-        # prevents scheduler start twice (only in debug mode)
-        # https://stackoverflow.com/questions/14874782
-        scheduler.start()
-        task.add_init_jobs()
-        atexit.register(lambda: scheduler.shutdown())
-        print("Scheduler started...")
+    scheduler.start()
+    task.add_init_jobs()
+    atexit.register(lambda: scheduler.shutdown())
+    print("Scheduler started...")
 
     # start timeline task
     from app.task import timeline_task
