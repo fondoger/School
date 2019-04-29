@@ -117,14 +117,15 @@ class Upyun:
 
 
 def backup_mysql(expire_days=30):
+    mysql_dump_path = os.path.dirname(os.path.relpath(__file__)) + '/' + 'mysql-data.sql.gz'
     backup_file_name = datetime.now().strftime('mysql-autobackup-%Y-%m-%d-%H:%M:%S.sql.gz')
-    cmd = "mysqldump -u{user} -p'{password}' {db_name} | gzip > {output}".format(
-        user=DB_USER, password=DB_PASSWORD, db_name=DB_DATABASE, output=backup_file_name)
+    cmd = "mysqldump -u{user} -p'{password}' {db_name} | gzip > '{output}'".format(
+        user=DB_USER, password=DB_PASSWORD, db_name=DB_DATABASE, output=mysql_dump_path)
     try:
         logging.info("executing command: %s" % cmd)
         subprocess.run(cmd, check=True)
         logging.info("uploading file to upyun: %s" % backup_file_name)
-        Upyun.upload(backup_file_name, backup_file_name, expire_days)
+        Upyun.upload(mysql_dump_path, backup_file_name, expire_days)
         logging.info("backup Success!")
     except Exception as e:
         logging.exception("backup failed!")
