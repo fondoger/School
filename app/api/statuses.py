@@ -75,7 +75,7 @@ def create_status():
             return bad_request('title empty')
         if group is None:
             return bad_request('该团体不存在')
-        s = Status(type=type, user=g.user, roup=group, title=title, text=text)
+        s = Status(type=type, user=g.user, group=group, title=title, text=text)
 
     if s is not None:
         for index, pic_url in enumerate(pics):
