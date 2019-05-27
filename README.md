@@ -1,8 +1,11 @@
 Social_BUAA Server
 ========
 
-这是[Social_School](https://github.com/fondoger/Social_School)的后端服务，基于Python 3。
+这是的一个类似微博的校园社交平台后端服务，基于Python Flask。
 
+你可以点此链接进入官方网站：[官网链接](http://fondoger.github.io/Social_School)
+
+这是整个社交北航系统的后端服务，与之配套的还有另一个移动端的项目，[点此查看](https://github.com/fondoger/Social_School)。
 
 安装依赖及运行
 -------
